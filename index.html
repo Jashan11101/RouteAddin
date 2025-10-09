@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <script src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"></script>
+  <script src="https://maps.googleapis.com/maps/api/js?key=YOUR_API_KEY"></script>
+</head>
+<body>
+  <div id="map" style="width:100%;height:300px;"></div>
+  <div>
+    <p id="distance"></p>
+    <input id="rate" type="number" placeholder="Rate per mile">
+    <button onclick="calculate()">Calculate</button>
+    <p id="total"></p>
+  </div>
+
+  <script>
+    let directionsService, directionsRenderer, distanceMiles = 0;
+
+    Office.onReady(() => {
+      const item = Office.context.mailbox.item;
+      const text = item.getSelectedDataAsync ?
+                   item.getSelectedDataAsync(Office.CoercionType.Text, res => plot(res.value)) :
+                   plot(item.subject);
+    });
+
+    function plot(routeText) {
+      // Extract locations like "Bolton, ON - Tulsa, OK"
+      const [origin, destination] = routeText.split('-').map(s => s.trim());
+      directionsService = new google.maps.DirectionsService();
+      directionsRenderer = new google.maps.DirectionsRenderer();
+      const map = new google.maps.Map(document.getElementById("map"), { zoom: 5 });
+      directionsRenderer.setMap(map);
+      directionsService.route(
+        { origin, destination, travelMode: 'DRIVING' },
+        (result, status) => {
+          if (status === 'OK') {
+            directionsRenderer.setDirections(result);
+            const legs = result.routes[0].legs;
+            distanceMiles = legs.reduce((sum, l) => sum + l.distance.value, 0) / 1609.34;
+            document.getElementById('distance').innerText = `Distance: ${distanceMiles.toFixed(1)} miles`;
+          }
+        }
+      );
+    }
+
+    function calculate() {
+      const rate = parseFloat(document.getElementById('rate').value);
+      document.getElementById('total').innerText =
+        `Total: $${(distanceMiles * rate).toFixed(2)}`;
+    }
+  </script>
+</body>
+</html>
