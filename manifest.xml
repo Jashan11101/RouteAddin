@@ -1,7 +1,7 @@
 <OfficeApp xmlns="http://schemas.microsoft.com/office/appforoffice/1.1"
            xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
            xsi:type="MailApp">
-  <Id>your-unique-id</Id>
+  <Id>{3C4B2F1E-9B2A-4F9D-ABCD-1234567890AB}</Id>
   <Version>1.0.0.0</Version>
   <ProviderName>YourCompany</ProviderName>
   <DefaultLocale>en-US</DefaultLocale>
@@ -21,7 +21,7 @@
   <FormSettings>
     <Form xsi:type="ItemRead">
       <DesktopSettings>
-        <<SourceLocation DefaultValue="https://jashan11101.github.io/RouteAddin/index.html" />
+        <SourceLocation DefaultValue="https://jashan11101.github.io/RouteAddin/index.html" />
       </DesktopSettings>
     </Form>
   </FormSettings>
@@ -39,49 +39,48 @@
 
   <VersionOverrides xmlns="http://schemas.microsoft.com/office/mailappversionoverrides/1.0"
                     xsi:type="VersionOverridesV1_0">
-    <VersionOverrides>
-      <Hosts>
-        <Host xsi:type="MailHost">
-          <DesktopFormFactor>
-            <ExtensionPoint xsi:type="MessageReadCommandSurface">
-              <OfficeTab id="TabDefault">
-                <Group id="msgReadGroup">
-                  <Label resid="groupLabel" />
-                  <Control xsi:type="Button" id="showMapBtn">
-                    <Label resid="buttonLabel" />
-                    <Supertip>
-                      <Title resid="buttonLabel" />
-                      <Description resid="buttonDesc" />
-                    </Supertip>
-                    <Icon>
-                      <bt:Image size="16" resid="icon16" />
-                    </Icon>
-                    <Action xsi:type="ShowTaskpane">
-                      <SourceLocation resid="TaskPane.Url" />
-                    </Action>
-                  </Control>
-                </Group>
-              </OfficeTab>
-            </ExtensionPoint>
-          </DesktopFormFactor>
-        </Host>
-      </Hosts>
-      <Resources>
-        <bt:Images>
-          <bt:Image id="icon16" DefaultValue="https://jashan11101.github.io/RouteAddin/icon16.png"/>
-        </bt:Images>
-        <bt:Urls>
-          <bt:Url id="TaskPane.Url" DefaultValue="https://yourdomain.com/addin/index.html"/>
-        </bt:Urls>
-        <bt:ShortStrings>
-          <bt:String id="groupLabel" DefaultValue="Route Tools"/>
-          <bt:String id="buttonLabel" DefaultValue="Show Map"/>
-          <bt:String id="TaskPane.Title" DefaultValue="Route & Rate"/>
-        </bt:ShortStrings>
-        <bt:LongStrings>
-          <bt:String id="buttonDesc" DefaultValue="Display map and calculate total rate"/>
-        </bt:LongStrings>
-      </Resources>
-    </VersionOverrides>
+    <Hosts>
+      <Host xsi:type="MailHost">
+        <DesktopFormFactor>
+          <ExtensionPoint xsi:type="MessageReadCommandSurface">
+            <OfficeTab id="TabDefault">
+              <Group id="msgReadGroup">
+                <Label resid="groupLabel" />
+                <Control xsi:type="Button" id="showMapBtn">
+                  <Label resid="buttonLabel" />
+                  <Supertip>
+                    <Title resid="buttonLabel" />
+                    <Description resid="buttonDesc" />
+                  </Supertip>
+                  <Icon>
+                    <bt:Image size="16" resid="icon16" />
+                  </Icon>
+                  <Action xsi:type="ShowTaskpane">
+                    <SourceLocation resid="TaskPane.Url" />
+                  </Action>
+                </Control>
+              </Group>
+            </OfficeTab>
+          </ExtensionPoint>
+        </DesktopFormFactor>
+      </Host>
+    </Hosts>
+
+    <Resources>
+      <bt:Images>
+        <bt:Image id="icon16" DefaultValue="https://jashan11101.github.io/RouteAddin/icon16.png"/>
+      </bt:Images>
+      <bt:Urls>
+        <bt:Url id="TaskPane.Url" DefaultValue="https://jashan11101.github.io/RouteAddin/index.html"/>
+      </bt:Urls>
+      <bt:ShortStrings>
+        <bt:String id="groupLabel" DefaultValue="Route Tools"/>
+        <bt:String id="buttonLabel" DefaultValue="Show Map"/>
+        <bt:String id="TaskPane.Title" DefaultValue="Route & Rate"/>
+      </bt:ShortStrings>
+      <bt:LongStrings>
+        <bt:String id="buttonDesc" DefaultValue="Display map and calculate total rate"/>
+      </bt:LongStrings>
+    </Resources>
   </VersionOverrides>
 </OfficeApp>
