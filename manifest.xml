@@ -1,15 +1,15 @@
 <OfficeApp xmlns="http://schemas.microsoft.com/office/appforoffice/1.1"
            xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
            xsi:type="MailApp">
-  <Id>{3C4B2F1E-9B2A-4F9D-ABCD-1234567890AB}</Id>
+  <Id>548dc4d7-7a19-4d87-9d1a-105de9318857</Id>
   <Version>1.0.0.0</Version>
   <ProviderName>YourCompany</ProviderName>
   <DefaultLocale>en-US</DefaultLocale>
   <DisplayName>Route & Rate Calculator</DisplayName>
-  <Description>Show map and calculate rate per mile.</Description>
+  <Description>Show map and calculate rate per mile inside Outlook.</Description>
 
   <Hosts>
-    <Host Name="Mailbox" />
+    <Host Name="Mailbox"/>
   </Hosts>
 
   <Requirements>
@@ -18,11 +18,24 @@
     </Sets>
   </Requirements>
 
-  <Permissions>ReadItem</Permissions>
+  <FormSettings>
+    <Form xsi:type="ItemRead">
+      <DesktopSettings>
+        <SourceLocation DefaultValue="https://yourdomain.com/RouteAddin/index.html"/>
+      </DesktopSettings>
+    </Form>
+  </FormSettings>
+
+  <Permissions>ReadWriteItem</Permissions>
 
   <Rule xsi:type="RuleCollection" Mode="Or">
     <Rule xsi:type="ItemIs" ItemType="Message" FormType="Read"/>
   </Rule>
+
+  <Action xsi:type="ShowTaskpane">
+    <SourceLocation resid="TaskPane.Url"/>
+    <Title resid="TaskPane.Title"/>
+  </Action>
 
   <VersionOverrides xmlns="http://schemas.microsoft.com/office/mailappversionoverrides/1.0"
                     xsi:type="VersionOverridesV1_0">
@@ -55,10 +68,10 @@
 
     <Resources>
       <bt:Images>
-        <bt:Image id="icon16" DefaultValue="https://jashan11101.github.io/RouteAddin/icon16.png"/>
+        <bt:Image id="icon16" DefaultValue="https://yourdomain.com/RouteAddin/icons/icon16.png"/>
       </bt:Images>
       <bt:Urls>
-        <bt:Url id="TaskPane.Url" DefaultValue="https://jashan11101.github.io/RouteAddin/index.html"/>
+        <bt:Url id="TaskPane.Url" DefaultValue="https://yourdomain.com/RouteAddin/index.html"/>
       </bt:Urls>
       <bt:ShortStrings>
         <bt:String id="groupLabel" DefaultValue="Route Tools"/>
