@@ -33,6 +33,7 @@ function initMap(origin = "Mississauga, ON", destination = "Santa Paula, CA") {
   
   calculateRoute(origin, destination);
 
+  // Update distance when route changes (drag stops)
   directionsRenderer.addListener("directions_changed", updateDistanceRate);
 }
 
@@ -42,28 +43,37 @@ function calculateRoute(origin, destination) {
     destination: destination,
     travelMode: google.maps.TravelMode.DRIVING
   }, (response, status) => {
-    if (status === "OK") directionsRenderer.setDirections(response);
-    else document.getElementById("result").innerText = "Error: " + status;
+    if (status === "OK") {
+      directionsRenderer.setDirections(response);
+      updateDistanceRate();
+    } else {
+      document.getElementById("result").innerText = "Error: " + status;
+    }
   });
 }
 
 function updateDistanceRate() {
   const directions = directionsRenderer.getDirections();
   if (!directions) return;
-  
+
+  // Calculate total distance in miles
   let totalMeters = 0;
   directions.routes[0].legs.forEach(leg => totalMeters += leg.distance.value);
   const miles = totalMeters / 1609.34;
+
+  // Calculate rates
   const rate = parseFloat(document.getElementById("rateInput").value);
   const usd = (miles * rate).toFixed(2);
   const cad = (miles * rate * 1.35).toFixed(2);
+
   document.getElementById("result").innerText =
       `Distance: ${miles.toFixed(1)} miles\nRate: $${usd} USD / C$${cad} CAD`;
 }
 
+// Calculate button click
 document.getElementById("calcBtn").onclick = updateDistanceRate;
 
-// Listen for messages from extension
+// Receive messages from extension
 window.addEventListener("message", (event) => {
   if(event.data.origin && event.data.destination) {
     calculateRoute(event.data.origin, event.data.destination);
