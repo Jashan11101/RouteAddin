@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Route & Rate Panel</title>
+<style>
+  body { font-family: "Segoe UI", sans-serif; margin: 0; padding: 10px; }
+  #map { width: 100%; height: 60vh; margin-bottom: 10px; }
+  #controls { margin-bottom: 10px; }
+</style>
+</head>
+<body>
+<h3>Route & Rate</h3>
+<div id="map"></div>
+<div id="controls">
+  Rate per mile ($): <input type="number" id="rateInput" value="2.5" style="width:60px"/>
+  <button id="calcBtn">Calculate Rate</button>
+</div>
+<div id="result"></div>
+
+<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDJnAxCtJ_vwdPFihhnonizyVStpQAPSoY"></script>
+<script>
+let map, directionsService, directionsRenderer;
+
+function initMap(origin = "Mississauga, ON", destination = "Santa Paula, CA") {
+  map = new google.maps.Map(document.getElementById("map"), {
+    zoom: 5,
+    center: { lat: 39.5, lng: -98.35 }
+  });
+
+  directionsService = new google.maps.DirectionsService();
+  directionsRenderer = new google.maps.DirectionsRenderer({ draggable: true, map: map });
+  
+  calculateRoute(origin, destination);
+
+  directionsRenderer.addListener("directions_changed", updateDistanceRate);
+}
+
+function calculateRoute(origin, destination) {
+  directionsService.route({
+    origin: origin,
+    destination: destination,
+    travelMode: google.maps.TravelMode.DRIVING
+  }, (response, status) => {
+    if (status === "OK") directionsRenderer.setDirections(response);
+    else document.getElementById("result").innerText = "Error: " + status;
+  });
+}
+
+function updateDistanceRate() {
+  const directions = directionsRenderer.getDirections();
+  if (!directions) return;
+  
+  let totalMeters = 0;
+  directions.routes[0].legs.forEach(leg => totalMeters += leg.distance.value);
+  const miles = totalMeters / 1609.34;
+  const rate = parseFloat(document.getElementById("rateInput").value);
+  const usd = (miles * rate).toFixed(2);
+  const cad = (miles * rate * 1.35).toFixed(2);
+  document.getElementById("result").innerText =
+      `Distance: ${miles.toFixed(1)} miles\nRate: $${usd} USD / C$${cad} CAD`;
+}
+
+document.getElementById("calcBtn").onclick = updateDistanceRate;
+
+// Listen for messages from extension
+window.addEventListener("message", (event) => {
+  if(event.data.origin && event.data.destination) {
+    calculateRoute(event.data.origin, event.data.destination);
+  }
+});
+
+initMap();
+</script>
+</body>
+</html>
