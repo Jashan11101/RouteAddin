@@ -1,115 +1,127 @@
 <!DOCTYPE html>
 <html>
-<head>
-<meta charset="utf-8" />
-<title>Route & Rate Panel</title>
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<style>
-  body { font-family: "Segoe UI", sans-serif; margin: 0; padding: 10px; background: #fff; color: #111; }
-  #map { width: 100%; height: 60vh; border: 1px solid #ddd; border-radius: 6px; }
-  #controls { margin: 8px 0; display:flex; gap:8px; align-items:center; }
-  #result { white-space: pre-line; margin-top:8px; font-weight:600; }
-  #saveBtn { background:#0078d4; color:white; border:none; padding:6px 10px; border-radius:4px; cursor:pointer; }
-</style>
-</head>
-<body>
-  <h3 style="margin:0 0 8px 0">Route & Rate</h3>
+  <head>
+    <meta charset="utf-8" />
+    <title>Route Planner</title>
+    <style>
+      html, body {
+        margin: 0;
+        padding: 0;
+        height: 100%;
+        width: 100%;
+        font-family: Segoe UI, sans-serif;
+      }
+      #panel {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+      }
+      #controls {
+        padding: 8px;
+        background: #f9f9f9;
+        border-bottom: 1px solid #ccc;
+      }
+      #map {
+        flex: 1;
+      }
+      #total {
+        background: #fafafa;
+        border-top: 1px solid #ccc;
+        padding: 8px;
+        font-size: 15px;
+      }
+      input, button {
+        padding: 6px 10px;
+        margin: 4px;
+      }
+      button {
+        cursor: pointer;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="panel">
+      <div id="controls">
+        <input id="origin" type="text" placeholder="Origin" style="width: 180px" />
+        <input id="destination" type="text" placeholder="Destination" style="width: 180px" />
+        <button id="addStop">+ Add Drop</button>
+        <button id="calcRoute">Show Route</button>
+      </div>
+      <div id="map"></div>
+      <div id="total">
+        <b>Total Distance:</b> <span id="distance">0</span> miles<br>
+        <b>Rate per Mile:</b> <input id="rate" type="number" value="2.5" style="width:70px"> 
+        <b>Total:</b> <span id="totalRate">0</span> USD / <span id="totalCAD">0</span> CAD
+      </div>
+    </div>
 
-  <div id="controls">
-    <label>Rate per mile ($)</label>
-    <input id="rateInput" type="number" value="2.5" style="width:80px;padding:6px" />
-    <button id="calcBtn" style="padding:6px 10px">Calculate</button>
-    <button id="saveBtn">Save to email</button>
-  </div>
+    <script>
+      let map, directionsService, directionsRenderer;
+      let waypoints = [];
 
-  <div id="result">Select a route or wait for the extension to set origin/destination.</div>
-  <div id="map"></div>
+      function initMap() {
+        map = new google.maps.Map(document.getElementById("map"), {
+          center: { lat: 43.6532, lng: -79.3832 },
+          zoom: 5,
+        });
+        directionsService = new google.maps.DirectionsService();
+        directionsRenderer = new google.maps.DirectionsRenderer({
+          map: map,
+          draggable: true,
+        });
+        directionsRenderer.addListener("directions_changed", computeDistance);
+      }
 
-  <!-- Maps JS loaded with your API key (make sure billing + APIs are enabled) -->
-  <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyChYFu82xWcUOpUS23eSbuMPgGm7swXuSo&libraries=places"></script>
-
-  <script>
-    let map, directionsService, directionsRenderer;
-    let currentRoute = { origin: "", destination: "" };
-
-    function initMap() {
-      map = new google.maps.Map(document.getElementById("map"), {
-        zoom: 5,
-        center: { lat: 39.5, lng: -98.35 }
+      document.getElementById("addStop").addEventListener("click", () => {
+        const stop = prompt("Enter stop location:");
+        if (stop) waypoints.push({ location: stop, stopover: true });
       });
-      directionsService = new google.maps.DirectionsService();
-      directionsRenderer = new google.maps.DirectionsRenderer({ draggable: true, map: map });
-      directionsRenderer.addListener("directions_changed", onDirectionsChanged);
-    }
 
-    function calculateRoute(origin, destination) {
-      if (!origin || !destination) return;
-      currentRoute.origin = origin;
-      currentRoute.destination = destination;
+      document.getElementById("calcRoute").addEventListener("click", () => {
+        const origin = document.getElementById("origin").value;
+        const destination = document.getElementById("destination").value;
+        if (!origin || !destination) return alert("Please enter origin and destination");
 
-      directionsService.route({
-        origin,
-        destination,
-        travelMode: google.maps.TravelMode.DRIVING
-      }, (response, status) => {
-        if (status === "OK") {
-          directionsRenderer.setDirections(response);
-          updateDistanceRate();
-        } else {
-          document.getElementById("result").innerText = "Map error: " + status;
-        }
-      });
-    }
-
-    function updateDistanceRate() {
-      const directions = directionsRenderer.getDirections();
-      if (!directions) return;
-      let totalMeters = 0;
-      directions.routes[0].legs.forEach(leg => totalMeters += leg.distance.value);
-      const miles = totalMeters / 1609.34;
-      const rate = parseFloat(document.getElementById("rateInput").value) || 0;
-      const usd = (miles * rate).toFixed(2);
-      const cad = (miles * rate * 1.35).toFixed(2);
-      document.getElementById("result").innerText = `Distance: ${miles.toFixed(1)} miles\nRate: $${usd} USD / C$${cad} CAD`;
-
-      // notify parent extension about the calc (optional)
-      window.parent.postMessage({ type: "calculation", result: { miles, usd, cad } }, "*");
-    }
-
-    // Save route request - sends message to parent to store (parent will save per email context)
-    function saveRouteToParent() {
-      window.parent.postMessage({ type: "saveRoute", route: currentRoute }, "*");
-      // small feedback
-      const btn = document.getElementById("saveBtn");
-      btn.textContent = "Saved ✓";
-      setTimeout(()=> btn.textContent = "Save to email", 1500);
-    }
-
-    // Listen to parent messages (extension)
-    window.addEventListener("message", (ev) => {
-      try {
-        const data = ev.data;
-        if (!data || typeof data !== "object") return;
-        if (data.type === "setRoute" || data.origin || data.destination) {
-          const origin = data.route ? data.route.origin : data.origin;
-          const destination = data.route ? data.route.destination : data.destination;
-          if (origin && destination) {
-            calculateRoute(origin, destination);
+        directionsService.route(
+          {
+            origin: origin,
+            destination: destination,
+            waypoints: waypoints,
+            optimizeWaypoints: true,
+            travelMode: google.maps.TravelMode.DRIVING,
+          },
+          (response, status) => {
+            if (status === "OK") {
+              directionsRenderer.setDirections(response);
+              computeDistance();
+            } else {
+              alert("Route failed: " + status);
+            }
           }
-        }
-      } catch (e) { console.error(e); }
-    });
+        );
+      });
 
-    document.getElementById("calcBtn").addEventListener("click", updateDistanceRate);
-    document.getElementById("saveBtn").addEventListener("click", saveRouteToParent);
+      function computeDistance() {
+        const directions = directionsRenderer.getDirections();
+        let total = 0;
+        const route = directions.routes[0];
+        route.legs.forEach((leg) => {
+          total += leg.distance.value;
+        });
+        total = total / 1609.34; // meters to miles
+        document.getElementById("distance").textContent = total.toFixed(2);
 
-    // init after API loaded
-    window.initMap = initMap;
-    if (window.google && google.maps) initMap();
-    else {
-      // in case maps loaded later, try again when script available
-      const t = setInterval(()=>{ if(window.google && google.maps){ clearInterval(t); initMap(); } }, 300);
-    }
-  </script>
-</body>
+        const rate = parseFloat(document.getElementById("rate").value);
+        const totalUSD = (total * rate).toFixed(2);
+        const totalCAD = (totalUSD * 1.37).toFixed(2); // Example conversion
+        document.getElementById("totalRate").textContent = totalUSD;
+        document.getElementById("totalCAD").textContent = totalCAD;
+      }
+    </script>
+
+    <script
+      async
+      src="https://maps.googleapis.com/maps/api/js?key=AIzaSyChYFu82xWcUOpUS23eSbuMPgGm7swXuSo&callback=initMap"
+    ></script>
+  </body>
 </html>
