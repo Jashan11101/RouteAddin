@@ -2,143 +2,149 @@
 <html>
 <head>
   <meta charset="utf-8" />
-  <title>Route Planner</title>
+  <title>Route & Rate Panel</title>
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <style>
-    :root { --accent: #0078d4; --bg: #fff; --muted:#666; }
-    html,body { height:100%; margin:0; font-family: "Segoe UI", Roboto, Arial; background:#f5f7f9; color:#111; }
-    #container { display:flex; flex-direction:column; height:100vh; width:100%; box-sizing:border-box; padding:8px; gap:8px; }
-    #topbar { display:flex; gap:8px; align-items:center; }
-    .field { display:flex; flex-direction:column; }
-    input[type="text"], input[type="number"] { padding:8px; border-radius:6px; border:1px solid #d0d7de; width:250px; }
-    #listWrap { background:#fff; border:1px solid #e0e6eb; border-radius:8px; padding:8px; max-height:170px; overflow:auto; }
-    .row { display:flex; align-items:center; gap:8px; padding:6px; border-bottom:1px solid #f0f2f4; }
-    .row:last-child{ border-bottom:0; }
-    .grab { cursor:grab; padding:6px; color:var(--muted); }
-    .addrInput { flex:1; padding:8px; border-radius:6px; border:1px solid #d0d7de; }
-    .trash { cursor:pointer; color:#b33; padding:6px; }
-    #map { flex:1; border-radius:6px; border:1px solid #d9dee3; }
-    #bottom { display:flex; align-items:center; gap:12px; justify-content:space-between; padding-top:6px; }
-    #totals { font-weight:600; }
-    button { background:var(--accent); color:#fff; border:0; padding:8px 12px; border-radius:6px; cursor:pointer; }
-    button.ghost { background:#efefef; color:#333; }
-    small.muted { color:var(--muted); margin-left:6px; }
-    #saveStatus { color:green; margin-left:10px; font-weight:600; }
+    :root { --accent:#0078d4; --muted:#666; --bg:#fff; }
+    html,body { height:100%; margin:0; font-family: "Segoe UI", Roboto, Arial; background:#f7f9fb; color:#111; }
+    #wrap { display:flex; flex-direction:column; height:100vh; padding:8px; box-sizing:border-box; gap:8px; }
+    #top { display:flex; gap:8px; align-items:center; }
+    .input { padding:8px 10px; border-radius:6px; border:1px solid #d3d8dd; background:#fff; }
+    #stopsBox { background:#fff; border:1px solid #e6eaef; border-radius:8px; padding:6px; max-height:150px; overflow:auto; }
+    .stopRow { display:flex; align-items:center; gap:8px; padding:6px; border-bottom:1px solid #f2f4f6; }
+    .stopRow:last-child { border-bottom:0; }
+    .handle { cursor:grab; color:var(--muted); padding:6px; user-select:none; }
+    .addr { flex:1; padding:8px; border-radius:6px; border:1px solid #e1e6eb; }
+    .btn { background:var(--accent); color:#fff; border:0; padding:8px 10px; border-radius:6px; cursor:pointer; }
+    .btn.ghost { background:#efefef; color:#333; }
+    #map { flex:1; border-radius:8px; border:1px solid #d9dee3; }
+    #bottom { display:flex; align-items:center; justify-content:space-between; gap:12px; }
+    #totals { font-weight:700; }
+    #controlsLeft { display:flex; gap:8px; align-items:center; }
+    small.muted { color:var(--muted); }
+    .iconBtn { background:transparent; border:0; cursor:pointer; padding:6px; border-radius:6px; }
+    #headerRow { display:flex; justify-content:space-between; align-items:center; gap:8px; }
+    #headerRow .right { display:flex; gap:6px; align-items:center; }
   </style>
 </head>
 <body>
-  <div id="container">
-    <div id="topbar">
-      <div class="field">
-        <label style="font-size:12px;color:#333">Origin</label>
-        <input id="originInput" type="text" placeholder="Origin (auto-fill from selection)" />
+  <div id="wrap">
+    <div id="headerRow">
+      <div>
+        <strong>Route & Rate</strong> <small class="muted">— interactive panel</small>
       </div>
-      <div class="field">
-        <label style="font-size:12px;color:#333">Destination</label>
-        <input id="destInput" type="text" placeholder="Destination (auto-fill from selection)" />
-      </div>
-      <div style="display:flex;flex-direction:column;justify-content:flex-end;">
-        <button id="addDropBtn">+ Add Drop</button>
+      <div class="right">
+        <button id="helpBtn" class="iconBtn">Help</button>
+        <button id="openMapsBtn" class="iconBtn">Open in Maps</button>
+        <button id="shareBtn" class="iconBtn">Share</button>
+        <button id="minBtn" class="iconBtn">_</button>
+        <button id="closeBtn" class="iconBtn">✕</button>
       </div>
     </div>
 
-    <div id="listWrap" aria-label="Stops list">
-      <!-- dynamic rows -->
+    <div id="top">
+      <input id="origin" class="input" placeholder="Origin (auto)" type="text" style="width:40%"/>
+      <input id="destination" class="input" placeholder="Destination (auto)" type="text" style="width:40%"/>
+      <button id="addBtn" class="btn">Add drop</button>
+    </div>
+
+    <div id="stopsBox" aria-label="stops">
+      <!-- dynamic stop rows -->
     </div>
 
     <div id="map"></div>
 
     <div id="bottom">
-      <div>
-        <label style="font-size:12px;color:#333">Rate per mile (USD)</label>
-        <input id="rateInput" type="number" value="2.50" step="0.01" style="width:100px; display:inline-block; margin-left:8px" />
+      <div id="controlsLeft">
+        <label>Rate per mile (USD)</label>
+        <input id="rate" class="input" type="number" value="2.50" style="width:90px"/>
+        <button id="saveBtn" class="btn">Save</button>
+        <button id="clearBtn" class="btn ghost">Clear</button>
       </div>
 
       <div id="totals">
-        <span id="distanceTxt">Distance: 0.0 mi</span> —
-        <span id="usdTxt">$0.00 USD</span> / <span id="cadTxt">C$0.00 CAD</span>
-        <span id="saveStatus"></span>
-      </div>
-
-      <div>
-        <button id="saveBtn">Save</button>
-        <button id="resetBtn" class="ghost">Clear</button>
+        <span id="distance">Distance: 0.0 mi</span> —
+        <span id="usd">$0.00 USD</span> / <span id="cad">C$0.00 CAD</span>
       </div>
     </div>
   </div>
 
-  <!-- Google Maps JS: API key (your key) -->
+  <!-- Google Maps (use your key) -->
   <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyChYFu82xWcUOpUS23eSbuMPgGm7swXuSo&libraries=places"></script>
 
   <script>
-  // mapPanel.html — interactive map with reorderable stop list, draggable route, autosync.
   (function(){
-    // Elements
-    const originInput = document.getElementById('originInput');
-    const destInput = document.getElementById('destInput');
-    const listWrap = document.getElementById('listWrap');
-    const addDropBtn = document.getElementById('addDropBtn');
-    const rateInput = document.getElementById('rateInput');
-    const distanceTxt = document.getElementById('distanceTxt');
-    const usdTxt = document.getElementById('usdTxt');
-    const cadTxt = document.getElementById('cadTxt');
+    const originEl = document.getElementById('origin');
+    const destEl = document.getElementById('destination');
+    const stopsBox = document.getElementById('stopsBox');
+    const addBtn = document.getElementById('addBtn');
+    const rateEl = document.getElementById('rate');
+    const distanceEl = document.getElementById('distance');
+    const usdEl = document.getElementById('usd');
+    const cadEl = document.getElementById('cad');
     const saveBtn = document.getElementById('saveBtn');
-    const resetBtn = document.getElementById('resetBtn');
-    const saveStatus = document.getElementById('saveStatus');
+    const clearBtn = document.getElementById('clearBtn');
+    const shareBtn = document.getElementById('shareBtn');
+    const openMapsBtn = document.getElementById('openMapsBtn');
+    const helpBtn = document.getElementById('helpBtn');
+    const minBtn = document.getElementById('minBtn');
+    const closeBtn = document.getElementById('closeBtn');
 
-    // Map objects
     let map, directionsService, directionsRenderer;
-    let stops = []; // array of {id, address}
+    let stops = []; // array of {id,address}
     let contextRoute = { origin: '', destination: '' };
 
     function initMap(){
       map = new google.maps.Map(document.getElementById('map'), {
         center: { lat: 39.5, lng: -98.35 },
         zoom: 5,
+        gestureHandling: 'greedy' // enable scroll-zoom without ctrl
       });
       directionsService = new google.maps.DirectionsService();
       directionsRenderer = new google.maps.DirectionsRenderer({ map: map, draggable: true });
       directionsRenderer.addListener('directions_changed', onDirectionsChanged);
     }
 
-    function renderList(){
-      listWrap.innerHTML = '';
-      // show origin row (readonly)
-      const originRow = makeRow('origin', contextRoute.origin || '', true);
-      listWrap.appendChild(originRow);
+    function sanitizeAddr(s){ return (s||'').trim(); }
+
+    function renderStops(){
+      stopsBox.innerHTML = '';
+      // create origin (read-only)
+      const oRow = createRow('origin', contextRoute.origin || '', true);
+      stopsBox.appendChild(oRow);
       // stops
       stops.forEach((s, idx) => {
-        const row = makeRow('stop', s.address, false, idx);
-        listWrap.appendChild(row);
+        const r = createRow('stop', s.address, false, idx);
+        stopsBox.appendChild(r);
       });
-      // destination row
-      const destRow = makeRow('destination', contextRoute.destination || '', true);
-      listWrap.appendChild(destRow);
+      // create destination (read-only)
+      const dRow = createRow('destination', contextRoute.destination || '', true);
+      stopsBox.appendChild(dRow);
       attachRowEvents();
     }
 
-    function makeRow(type, value, readonly=false, stopIdx){
+    function createRow(type, value, readonly=false, idx){
       const row = document.createElement('div');
-      row.className = 'row';
+      row.className = 'stopRow';
       row.dataset.type = type;
-      if (typeof stopIdx !== 'undefined') row.dataset.index = stopIdx;
+      if (typeof idx !== 'undefined') row.dataset.index = idx;
 
-      const grab = document.createElement('span');
-      grab.className = 'grab';
-      grab.textContent = '⋮⋮';
-      grab.title = 'Drag to reorder';
-      if (readonly) grab.style.visibility = 'hidden';
-      row.appendChild(grab);
+      const handle = document.createElement('div');
+      handle.className = 'handle';
+      handle.textContent = '⋮';
+      handle.title = 'Drag to reorder';
+      if (readonly) handle.style.visibility = 'hidden';
+      row.appendChild(handle);
 
       const input = document.createElement('input');
-      input.className = 'addrInput';
+      input.className = 'addr';
       input.type = 'text';
       input.value = value || '';
       if (readonly) input.readOnly = true;
       row.appendChild(input);
 
-      const del = document.createElement('span');
-      del.className = 'trash';
+      const del = document.createElement('button');
+      del.className = 'btn ghost';
       del.textContent = '✕';
       del.title = 'Remove';
       if (readonly) del.style.visibility = 'hidden';
@@ -147,72 +153,59 @@
       return row;
     }
 
+    // attach drag & drop + edit events
     function attachRowEvents(){
-      const rows = Array.from(listWrap.querySelectorAll('.row'));
-      rows.forEach((row, idx) => {
-        const grab = row.querySelector('.grab');
-        const input = row.querySelector('.addrInput');
-        const del = row.querySelector('.trash');
-
-        // drag and drop handlers for stops only
-        if (grab && row.dataset.type === 'stop') {
+      const rows = Array.from(stopsBox.querySelectorAll('.stopRow'));
+      rows.forEach((row) => {
+        const type = row.dataset.type;
+        const input = row.querySelector('.addr');
+        const del = row.querySelector('button');
+        if (type === 'stop') {
           row.draggable = true;
-          row.addEventListener('dragstart', (e) => {
+          row.addEventListener('dragstart', (e)=> {
             e.dataTransfer.setData('text/plain', row.dataset.index);
             row.classList.add('dragging');
           });
-          row.addEventListener('dragend', (e) => {
-            row.classList.remove('dragging');
-          });
+          row.addEventListener('dragend', ()=> row.classList.remove('dragging'));
         }
-
-        // allow drop on row to reorder
-        row.addEventListener('dragover', (e) => {
+        row.addEventListener('dragover', (e)=> { e.preventDefault(); row.style.background='#fafafa'; });
+        row.addEventListener('dragleave', ()=> row.style.background='');
+        row.addEventListener('drop', (e)=> {
           e.preventDefault();
-          row.style.background = '#fcfcfc';
-        });
-        row.addEventListener('dragleave', () => { row.style.background = ''; });
-        row.addEventListener('drop', (e) => {
-          e.preventDefault();
-          const fromIndex = parseInt(e.dataTransfer.getData('text/plain'), 10);
-          const toIndex = parseInt(row.dataset.index, 10);
-          if (!isNaN(fromIndex) && !isNaN(toIndex) && fromIndex !== toIndex) {
-            // reorder stops array
-            const [moved] = stops.splice(fromIndex,1);
-            stops.splice(toIndex,0,moved);
-            renderList();
-            triggerRoute();
+          const from = parseInt(e.dataTransfer.getData('text/plain'), 10);
+          const to = parseInt(row.dataset.index, 10);
+          if (!isNaN(from) && !isNaN(to) && from !== to) {
+            const [m] = stops.splice(from,1);
+            stops.splice(to,0,m);
+            renderStops();
+            computeRoute();
           }
         });
 
-        // edit stop text -> update stops on blur or Enter
-        input.addEventListener('change', () => {
-          const type = row.dataset.type;
-          if (type === 'origin') { contextRoute.origin = input.value; triggerRoute(); }
-          else if (type === 'destination') { contextRoute.destination = input.value; triggerRoute(); }
-          else if (type === 'stop') {
+        input.addEventListener('change', ()=> {
+          const t = row.dataset.type;
+          if (t === 'origin') { contextRoute.origin = input.value; computeRoute(); }
+          else if (t === 'destination') { contextRoute.destination = input.value; computeRoute(); }
+          else if (t === 'stop') {
             const idx = parseInt(row.dataset.index,10);
             stops[idx].address = input.value;
-            triggerRoute();
+            computeRoute();
           }
         });
 
-        // delete
-        del.addEventListener('click', () => {
-          if (row.dataset.type==='stop') {
+        if (del) del.addEventListener('click', ()=> {
+          if (row.dataset.type === 'stop') {
             const idx = parseInt(row.dataset.index,10);
             stops.splice(idx,1);
-            renderList();
-            triggerRoute();
+            renderStops();
+            computeRoute();
           }
         });
       });
-      // allow adding a drop inline by clicking add button
     }
 
-    function triggerRoute(){
+    function computeRoute(){
       if (!contextRoute.origin || !contextRoute.destination) return;
-      // build waypoints (Google expects {location, stopover})
       const waypts = stops.map(s => ({ location: s.address, stopover:true }));
       directionsService.route({
         origin: contextRoute.origin,
@@ -223,136 +216,165 @@
       }, (response, status) => {
         if (status === 'OK') {
           directionsRenderer.setDirections(response);
-          updateTotalsFromResponse(response);
+          updateTotals(response);
         } else {
-          // show message in result
-          distanceTxt.textContent = 'Route error: ' + status;
+          distance.textContent = 'Route error: ' + status;
         }
       });
     }
 
-    function updateTotalsFromResponse(response) {
-      let totalMeters = 0;
-      response.routes[0].legs.forEach(leg => {
-        totalMeters += leg.distance.value;
-      });
-      const miles = totalMeters / 1609.34;
-      const rate = parseFloat(rateInput.value) || 0;
-      const usd = (miles * rate);
+    function updateTotals(response) {
+      let total = 0;
+      response.routes[0].legs.forEach(l => total += l.distance.value);
+      const miles = total / 1609.34;
+      const rate = parseFloat(rateEl.value) || 0;
+      const usd = miles * rate;
       const cad = usd * 1.35;
-      distanceTxt.textContent = 'Distance: ' + miles.toFixed(1) + ' mi';
-      usdTxt.textContent = '$' + usd.toFixed(2) + ' USD';
-      cadTxt.textContent = 'C$' + cad.toFixed(2);
-      // also notify parent (extension) optionally
-      window.parent.postMessage({ type:'calculation', result:{ miles, usd:usd.toFixed(2), cad:cad.toFixed(2) } }, '*');
+      distanceEl.textContent = 'Distance: ' + miles.toFixed(1) + ' mi';
+      usdEl.textContent = '$' + usd.toFixed(2) + ' USD';
+      cadEl.textContent = 'C$' + cad.toFixed(2);
+
+      // send calculation to parent (extension) so it can store lastCalc if needed
+      window.parent.postMessage({ type:'calculation', result: { miles, usd: usd.toFixed(2), cad: cad.toFixed(2) }}, '*');
     }
 
-    // When user drags route in the map the renderer provides waypoint_order
-    function onDirectionsChanged() {
+    function onDirectionsChanged(){
       const dirs = directionsRenderer.getDirections();
-      if(!dirs) return;
-      // waypoint_order indicates new order relative to provided waypoints
-      const route = dirs.routes[0];
-      if (route.waypoint_order && route.waypoint_order.length === stops.length) {
-        const newStops = route.waypoint_order.map(i => stops[i]);
+      if (!dirs) return;
+      // reorder stops if waypoint_order exists
+      const order = dirs.routes[0].waypoint_order || [];
+      if (order.length === stops.length) {
+        const newStops = order.map(i => stops[i]);
         stops = newStops;
-        // re-render list to reflect new order
-        renderList();
+        renderStops();
       }
-      // update totals
-      updateTotalsFromResponse(dirs);
+      updateTotals(dirs);
     }
 
-    // Add drop button handler (adds inline row at end)
-    addDropBtn.addEventListener('click', () => {
-      const address = prompt('Enter drop location (address or city, ST):');
-      if (address) {
-        stops.push({ id: Date.now(), address: address });
-        renderList();
-        triggerRoute();
-      }
+    // add drop inline
+    addBtn.addEventListener('click', ()=> {
+      stops.push({ id: Date.now(), address: '' });
+      renderStops();
+      // focus the last input for typing
+      setTimeout(()=> {
+        const inputs = stopsBox.querySelectorAll('.addr');
+        if (inputs.length) {
+          const last = inputs[inputs.length - 1];
+          last.focus();
+        }
+      }, 60);
     });
 
-    // Save button
-    saveBtn.addEventListener('click', () => {
-      // build route object
-      const payload = {
-        origin: contextRoute.origin,
-        destination: contextRoute.destination,
-        stops: stops.map(s => s.address || s),
-        rate: parseFloat(rateInput.value) || 0
-      };
-      // notify parent to save (extension will persist per-email)
+    // Save handler -> notify parent extension to persist per context
+    saveBtn.addEventListener('click', ()=> {
+      const payload = { origin: contextRoute.origin, destination: contextRoute.destination, stops: stops.map(s=>s.address), rate: parseFloat(rateEl.value) || 0 };
       window.parent.postMessage({ type:'saveRoute', route: payload }, '*');
-      saveStatus.textContent = 'Saved ✓';
-      setTimeout(()=> saveStatus.textContent = '', 1800);
+      // small UI feedback
+      const t = saveBtn.textContent;
+      saveBtn.textContent = 'Saved ✓';
+      setTimeout(()=> saveBtn.textContent = t, 1300);
     });
 
-    resetBtn.addEventListener('click', () => {
+    clearBtn.addEventListener('click', ()=> {
       contextRoute = { origin:'', destination:'' };
       stops = [];
-      originInput.value = '';
-      destInput.value = '';
-      rateInput.value = '2.50';
-      renderList();
-      distanceTxt.textContent = 'Distance: 0.0 mi';
-      usdTxt.textContent = '$0.00 USD';
-      cadTxt.textContent = 'C$0.00 CAD';
+      origin.value = ''; destination.value = '';
+      renderStops();
+      // notify parent to clear if desired
       window.parent.postMessage({ type:'clearRoute' }, '*');
     });
 
-    // Listen for messages from extension content.js
-    window.addEventListener('message', (ev) => {
-      const d = ev.data;
-      if (!d) return;
-      // Accept both {type:'setRoute', route:{...}} and directly {origin,destination}
-      if (d.type === 'setRoute' && d.route) {
-        contextRoute.origin = d.route.origin || contextRoute.origin;
-        contextRoute.destination = d.route.destination || contextRoute.destination;
-        if(d.route.stops && Array.isArray(d.route.stops)) {
-          stops = d.route.stops.map(a=>({id:Date.now()+Math.random(), address:a}));
+    // share: copy summary to clipboard and open native share if available
+    shareBtn.addEventListener('click', async () => {
+      const distText = distanceEl.textContent;
+      const summary = `${contextRoute.origin} → ${contextRoute.destination}\n${stops.map((s,i)=> (i+1)+'. '+s.address).join('\n')}\n${distText}\nRate per mile: $${(parseFloat(rateEl.value)||0).toFixed(2)}\nTotal: ${usdEl.textContent} / ${cadEl.textContent}`;
+      try {
+        await navigator.clipboard.writeText(summary);
+        // try native share
+        if (navigator.share) {
+          await navigator.share({ text: summary });
+        } else {
+          alert('Route copied to clipboard.');
         }
-        originInput.value = contextRoute.origin;
-        destInput.value = contextRoute.destination;
-        renderList();
-        triggerRoute();
-      } else if (d.origin && d.destination) {
-        contextRoute.origin = d.origin;
-        contextRoute.destination = d.destination;
-        originInput.value = contextRoute.origin;
-        destInput.value = contextRoute.destination;
-        renderList();
-        triggerRoute();
-      } else if (d.type === 'loadSaved' && d.route) {
-        // load saved route from extension
-        contextRoute.origin = d.route.origin || contextRoute.origin;
-        contextRoute.destination = d.route.destination || contextRoute.destination;
-        stops = (d.route.stops || []).map(a=>({id:Date.now()+Math.random(), address:a}));
-        originInput.value = contextRoute.origin;
-        destInput.value = contextRoute.destination;
-        rateInput.value = d.route.rate || rateInput.value;
-        renderList();
-        triggerRoute();
-      } else if (d.type === 'clear') {
-        contextRoute = { origin:'', destination:'' };
-        stops = [];
-        originInput.value = '';
-        destInput.value = '';
-        renderList();
+      } catch (e) {
+        alert('Could not share/copy: ' + e.message);
       }
     });
 
-    // Auto-detect origin/destination from local inputs if user typed then press Enter
-    originInput.addEventListener('change', () => { contextRoute.origin = originInput.value; triggerRoute(); });
-    destInput.addEventListener('change', () => { contextRoute.destination = destInput.value; triggerRoute(); });
-    rateInput.addEventListener('change', () => { triggerRoute(); });
+    // open in Google Maps - build a directions URL with waypoints (maps URL supports waypoints separated by /)
+    openMapsBtn.addEventListener('click', ()=> {
+      if (!contextRoute.origin || !contextRoute.destination) return alert('Origin or destination missing.');
+      // Build a Google Maps directions URL using query string
+      const base = 'https://www.google.com/maps/dir/?api=1';
+      const params = new URLSearchParams();
+      params.set('origin', contextRoute.origin);
+      params.set('destination', contextRoute.destination);
+      if (stops.length) params.set('waypoints', stops.map(s=>s.address).join('|'));
+      const url = base + '&' + params.toString();
+      // Ask parent to open (so popup is not blocked)
+      window.parent.postMessage({ type:'openInMaps', url: url }, '*');
+    });
+
+    // help button opens a small help overlay (we just open a new tab to google maps help or show minimal alert)
+    helpBtn.addEventListener('click', ()=> {
+      window.open('https://support.google.com/maps/answer/144339?hl=en', '_blank');
+    });
+
+    minBtn.addEventListener('click', ()=> {
+      window.parent.postMessage({ type:'minimizePanel' }, '*');
+    });
+    closeBtn.addEventListener('click', ()=> {
+      window.parent.postMessage({ type:'closePanel' }, '*');
+    });
+
+    // Handle messages from parent (content.js)
+    window.addEventListener('message', (ev) => {
+      const d = ev.data || {};
+      if (!d) return;
+      if (d.type === 'setRoute' && d.route) {
+        contextRoute.origin = d.route.origin || contextRoute.origin;
+        contextRoute.destination = d.route.destination || contextRoute.destination;
+        if (d.route.stops && Array.isArray(d.route.stops)) stops = d.route.stops.map(a=>({id:Date.now()+Math.random(), address:a}));
+        // fill the inputs and trigger route
+        originEl.value = contextRoute.origin;
+        destEl.value = contextRoute.destination;
+        renderStops();
+        computeRoute();
+      } else if (d.type === 'loadSaved' && d.route) {
+        contextRoute.origin = d.route.origin || contextRoute.origin;
+        contextRoute.destination = d.route.destination || contextRoute.destination;
+        stops = (d.route.stops || []).map(a=>({id:Date.now()+Math.random(), address:a}));
+        originEl.value = contextRoute.origin;
+        destEl.value = contextRoute.destination;
+        rateEl.value = d.route.rate || rateEl.value;
+        renderStops();
+        computeRoute();
+      } else if (d.origin && d.destination) {
+        contextRoute.origin = d.origin; contextRoute.destination = d.destination;
+        originEl.value = contextRoute.origin; destEl.value = contextRoute.destination;
+        renderStops();
+        computeRoute();
+      }
+    });
+
+    // small helpers for element references used above
+    const origin = originEl, destination = destEl, rateEl = rateEl = rateEl || document.getElementById('rate');
+    const distanceEl = distanceEl = distanceEl || document.getElementById('distance');
+    const usdEl = usdEl = usdEl || document.getElementById('usd');
+    const cadEl = cadEl = cadEl || document.getElementById('cad');
 
     // init
     function tryInit() {
-      if (window.google && google.maps) { initMap(); renderList(); }
+      if (window.google && google.maps) { initMap(); renderStops(); }
       else setTimeout(tryInit, 300);
     }
     tryInit();
+
+    // route compute helper uses inputs if user manually types them
+    origin.addEventListener('change', ()=> { contextRoute.origin = origin.value; computeRoute(); });
+    destination.addEventListener('change', ()=> { contextRoute.destination = destination.value; computeRoute(); });
+    rateEl.addEventListener('change', ()=> { computeRoute(); });
+
   })();
   </script>
 </body>
