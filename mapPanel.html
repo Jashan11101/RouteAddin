@@ -1,155 +1,21 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Route Panel</title>
+  <meta charset="utf-8">
+  <title>Route Map Panel</title>
   <style>
-    body {
-      font-family: Segoe UI, Arial, sans-serif;
-      margin: 0;
-      padding: 0;
-      overflow: hidden;
-      background: #f5f5f5;
-    }
-
-    #map {
-      width: 100%;
-      height: 80vh;
-      border-bottom: 1px solid #ccc;
-    }
-
-    .controls {
-      padding: 10px;
-      background: white;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-    }
-
-    .controls input {
-      width: calc(50% - 10px);
-      padding: 8px;
-      margin: 5px;
-      border: 1px solid #ccc;
-      border-radius: 6px;
-    }
-
-    .buttons {
-      display: flex;
-      justify-content: space-between;
-      padding: 10px;
-    }
-
-    button {
-      background-color: #0078d7;
-      color: white;
-      border: none;
-      border-radius: 6px;
-      padding: 8px 12px;
-      cursor: pointer;
-      font-size: 14px;
-    }
-
-    button:hover {
-      background-color: #005fa3;
-    }
+    html, body { height: 100%; margin: 0; padding: 0; }
+    #map { height: 100%; width: 100%; }
   </style>
 </head>
 <body>
   <div id="map"></div>
-
-  <div class="controls">
-    <input id="origin" type="text" placeholder="Origin (e.g., Kingston, ON)" />
-    <input id="destination" type="text" placeholder="Destination (e.g., Mesa, AZ)" />
-  </div>
-
-  <div class="buttons">
-    <button id="shareBtn">Share Route</button>
-    <button id="openFullBtn">Open in Full Tab</button>
-  </div>
-
+  <script src="https://maps.googleapis.com/maps/api/js?key=YOUR_API_KEY&libraries=places"></script>
   <script>
-    let map, directionsService, directionsRenderer;
-    let originInput, destinationInput;
-    let autocompleteOrigin, autocompleteDestination;
-
-    function initMap() {
-      map = new google.maps.Map(document.getElementById("map"), {
-        center: { lat: 43.6532, lng: -79.3832 },
-        zoom: 6,
-        mapTypeControl: false,
-      });
-
-      directionsService = new google.maps.DirectionsService();
-      directionsRenderer = new google.maps.DirectionsRenderer({
-        draggable: true,
-        map,
-      });
-
-      originInput = document.getElementById("origin");
-      destinationInput = document.getElementById("destination");
-
-      autocompleteOrigin = new google.maps.places.Autocomplete(originInput);
-      autocompleteDestination = new google.maps.places.Autocomplete(destinationInput);
-
-      directionsRenderer.addListener("directions_changed", () => {
-        const directions = directionsRenderer.getDirections();
-        if (directions) {
-          console.log("Route updated:", directions);
-        }
-      });
-
-      document.getElementById("origin").addEventListener("change", calculateRoute);
-      document.getElementById("destination").addEventListener("change", calculateRoute);
-      document.getElementById("shareBtn").addEventListener("click", shareRoute);
-      document.getElementById("openFullBtn").addEventListener("click", openInFullTab);
-    }
-
-    function calculateRoute() {
-      const origin = originInput.value.trim();
-      const destination = destinationInput.value.trim();
-      if (!origin || !destination) return;
-
-      directionsService.route(
-        {
-          origin,
-          destination,
-          travelMode: google.maps.TravelMode.DRIVING,
-        },
-        (response, status) => {
-          if (status === "OK") {
-            directionsRenderer.setDirections(response);
-          } else {
-            alert("Directions request failed: " + status);
-          }
-        }
-      );
-    }
-
-    function shareRoute() {
-      const origin = encodeURIComponent(originInput.value);
-      const destination = encodeURIComponent(destinationInput.value);
-      if (!origin || !destination) return alert("Enter both origin and destination first.");
-
-      const url = `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${destination}`;
-      navigator.clipboard.writeText(url);
-      alert("Route link copied to clipboard!");
-    }
-
-    function openInFullTab() {
-      const origin = encodeURIComponent(originInput.value);
-      const destination = encodeURIComponent(destinationInput.value);
-      if (!origin || !destination) return alert("Enter both origin and destination first.");
-
-      const url = `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${destination}`;
-      window.open(url, "_blank");
-    }
-  </script>
-
-  <!-- ✅ Corrected Google Maps API script -->
-  <script
-    async
-    defer
-    src="https://maps.googleapis.com/maps/api/js?key=AIzaSyChYFu82xWcUOpUS23eSbuMPgGm7swXuSo&callback=initMap&libraries=places">
+    const map = new google.maps.Map(document.getElementById("map"), {
+      center: { lat: 39.5, lng: -98.35 },
+      zoom: 4
+    });
   </script>
 </body>
 </html>
