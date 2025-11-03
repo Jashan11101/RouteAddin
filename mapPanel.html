@@ -1,8 +1,10 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
   <head>
+    <meta charset="UTF-8" />
     <title>Route Planner</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
     <style>
       html,
       body {
@@ -10,72 +12,132 @@
         margin: 0;
         font-family: "Segoe UI", sans-serif;
       }
-      #map {
-        height: 65%;
-      }
+
       #controls {
-        padding: 5px;
         background: #f8f8f8;
+        padding: 8px;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
       }
+
+      #inputRow {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px;
+      }
+
+      #inputRow input {
+        flex: 1;
+        min-width: 120px;
+        padding: 5px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+      }
+
+      #buttonRow {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 5px;
+      }
+
+      button {
+        background-color: #0078d4;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        padding: 6px 10px;
+        transition: background 0.2s ease;
+      }
+
+      button:hover {
+        background-color: #005ea6;
+      }
+
       #waypoints {
         list-style: none;
         padding: 0;
         margin: 0;
       }
+
       #waypoints li {
         background: #fff;
         margin: 4px 0;
         padding: 6px;
         border: 1px solid #ccc;
+        border-radius: 4px;
         cursor: grab;
       }
-      button {
-        background: #0078d4;
-        color: white;
-        border: none;
-        padding: 6px 10px;
-        margin: 4px;
-        border-radius: 4px;
-        cursor: pointer;
-      }
+
       #output {
+        background: #eef3fa;
         margin-top: 5px;
+        padding: 6px;
+        border-radius: 4px;
+        font-weight: 500;
+      }
+
+      #map {
+        height: calc(100% - 220px);
+        width: 100%;
       }
     </style>
+
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
   </head>
+
   <body>
     <div id="controls">
-      <input id="origin" placeholder="Origin" />
-      <input id="destination" placeholder="Destination" />
-      <button id="addStop">+ Add Drop</button>
-      <button id="calc">Calculate</button>
-      <button id="share">Share</button>
-      <button id="openGoogle">Open in Maps</button>
+      <div id="inputRow">
+        <input id="origin" placeholder="Origin" />
+        <input id="destination" placeholder="Destination" />
+      </div>
+
+      <div id="buttonRow">
+        <button id="addStop">+ Add Drop</button>
+        <button id="calc">Recalculate</button>
+        <button id="share">Share</button>
+        <button id="openGoogle">Open in Maps</button>
+      </div>
+
       <ul id="waypoints"></ul>
       <div id="output"></div>
     </div>
+
     <div id="map"></div>
 
     <script>
-      let map, directionsService, directionsRenderer, waypoints = [];
+      let map, directionsService, directionsRenderer;
+      let waypoints = [];
 
       function initMap() {
         map = new google.maps.Map(document.getElementById("map"), {
           zoom: 5,
           center: { lat: 40, lng: -95 },
+          gestureHandling: "greedy", // allows zoom with mouse scroll without CTRL
         });
+
         directionsService = new google.maps.DirectionsService();
-        directionsRenderer = new google.maps.DirectionsRenderer({ draggable: true, map });
+        directionsRenderer = new google.maps.DirectionsRenderer({
+          draggable: true,
+          map,
+        });
 
-        new Sortable(document.getElementById("waypoints"), { animation: 150 });
+        // Make waypoints sortable
+        new Sortable(document.getElementById("waypoints"), {
+          animation: 150,
+          onEnd: calcRoute,
+        });
 
+        // Add stop button
         document.getElementById("addStop").onclick = () => {
           const stop = prompt("Enter Drop Location:");
           if (stop) {
             const li = document.createElement("li");
             li.textContent = stop;
             document.getElementById("waypoints").appendChild(li);
+            calcRoute();
           }
         };
 
@@ -83,15 +145,29 @@
         document.getElementById("share").onclick = shareRoute;
         document.getElementById("openGoogle").onclick = openInMaps;
 
-        // Auto-fill from URL
+        // Get origin and destination from URL
         const params = new URLSearchParams(window.location.search);
-        document.getElementById("origin").value = params.get("origin") || "";
-        document.getElementById("destination").value = params.get("destination") || "";
+        const text = params.get("text");
+
+        if (text) {
+          let parts =
+            text.includes(" to ") || text.includes(" To ")
+              ? text.split(/ to | To /i)
+              : text.split(/ - /);
+          if (parts.length >= 2) {
+            document.getElementById("origin").value = parts[0].trim();
+            document.getElementById("destination").value = parts[1].trim();
+            calcRoute();
+          }
+        }
       }
 
       function calcRoute() {
-        const origin = document.getElementById("origin").value;
-        const destination = document.getElementById("destination").value;
+        const origin = document.getElementById("origin").value.trim();
+        const destination = document.getElementById("destination").value.trim();
+
+        if (!origin || !destination) return;
+
         const stops = Array.from(document.querySelectorAll("#waypoints li")).map(
           (li) => ({ location: li.textContent, stopover: true })
         );
@@ -107,8 +183,7 @@
             if (status === "OK") {
               directionsRenderer.setDirections(res);
               let total = 0;
-              const route = res.routes[0];
-              route.legs.forEach((leg) => (total += leg.distance.value));
+              res.routes[0].legs.forEach((leg) => (total += leg.distance.value));
               const miles = (total / 1609.34).toFixed(1);
               const rateUSD = (miles * 2.5).toFixed(2);
               const rateCAD = (rateUSD * 1.36).toFixed(2);
@@ -116,17 +191,20 @@
                 "output"
               ).innerHTML = `<b>${miles} miles</b><br>USD $${rateUSD}<br>CAD $${rateCAD}`;
             } else {
-              alert("Route request failed: " + status);
+              document.getElementById("output").innerText =
+                "Failed to calculate route: " + status;
             }
           }
         );
       }
 
       function shareRoute() {
-        const miles = document.getElementById("output").innerText;
-        navigator.share
-          ? navigator.share({ title: "Route Info", text: miles })
-          : alert("Sharing not supported on this device");
+        const text = document.getElementById("output").innerText;
+        if (navigator.share) {
+          navigator.share({ title: "Route Info", text });
+        } else {
+          alert("Sharing not supported on this device");
+        }
       }
 
       function openInMaps() {
@@ -138,6 +216,11 @@
         window.open(`https://www.google.com/maps/dir/${o}/${stops}/${d}`, "_blank");
       }
     </script>
-    <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyChYFu82xWcUOpUS23eSbuMPgGm7swXuSo&callback=initMap"></script>
+
+    <script
+      async
+      defer
+      src="https://maps.googleapis.com/maps/api/js?key=AIzaSyChYFu82xWcUOpUS23eSbuMPgGm7swXuSo&callback=initMap"
+    ></script>
   </body>
 </html>
