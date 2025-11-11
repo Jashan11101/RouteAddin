@@ -1,185 +1,33 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Route Planner</title>
-  <link rel="stylesheet" href="panel.css" />
+  <meta charset="UTF-8">
+  <title>Route Panel</title>
+  <link rel="stylesheet" href="mapPanel.css">
   <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyChYFu82xWcUOpUS23eSbuMPgGm7swXuSo&libraries=places"></script>
-  <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
 </head>
 <body>
-  <div id="routePanel">
-    <div class="header">
-      <h2>Route Planner</h2>
-      <div class="actions">
-        <button id="addStopBtn" title="Add Stop">➕</button>
-        <button id="calcBtn" title="Calculate Route">🧮</button>
-        <button id="shareBtn" title="Share Route">📤</button>
-        <button id="saveBtn" title="Pin Route">📌</button>
+  <div id="panel">
+    <header>
+      <h2>Route & Rate</h2>
+      <div id="actions">
+        <input type="number" id="rateInput" value="3.00" step="0.1" title="Rate per mile (CAD)">
+        <span class="unit">CAD/mi</span>
+        <button id="calcBtn" title="Calculate route">📍</button>
+        <button id="shareBtn" title="Share route">🔗</button>
+        <button id="saveBtn" title="Pin this route">📌</button>
       </div>
-    </div>
+    </header>
 
-    <div id="stopsContainer"></div>
+    <div id="stops"></div>
 
-    <div class="rateBox">
-      <label>Rate (CAD/mi):</label>
-      <input type="number" id="rateInput" value="3.0" step="0.1" />
-    </div>
+    <div id="map"></div>
 
-    <div id="results"></div>
+    <footer>
+      <div id="summary"></div>
+    </footer>
   </div>
 
-  <div id="map"></div>
-
-  <script>
-    let map, directionsService, directionsRenderer;
-    let stops = [];
-    let autocompleteObjects = [];
-
-    window.addEventListener("DOMContentLoaded", () => {
-      initMap();
-      initEvents();
-    });
-
-    function initMap() {
-      map = new google.maps.Map(document.getElementById("map"), {
-        center: { lat: 43.7, lng: -79.42 },
-        zoom: 6,
-        mapTypeControl: false,
-      });
-
-      directionsService = new google.maps.DirectionsService();
-      directionsRenderer = new google.maps.DirectionsRenderer({
-        draggable: true,
-        map,
-      });
-
-      addStop("Origin");
-      addStop("Destination");
-    }
-
-    function initEvents() {
-      document.getElementById("addStopBtn").addEventListener("click", () => addStop(""));
-      document.getElementById("calcBtn").addEventListener("click", calculateRoute);
-      document.getElementById("shareBtn").addEventListener("click", shareRoute);
-      document.getElementById("saveBtn").addEventListener("click", saveRoute);
-    }
-
-    function addStop(value = "") {
-      const container = document.getElementById("stopsContainer");
-      const row = document.createElement("div");
-      row.className = "stop-row";
-
-      const input = document.createElement("input");
-      input.placeholder = "Enter city...";
-      input.value = value;
-
-      const delBtn = document.createElement("button");
-      delBtn.textContent = "✖";
-      delBtn.addEventListener("click", () => {
-        row.remove();
-        updateStopsArray();
-      });
-
-      row.appendChild(input);
-      row.appendChild(delBtn);
-      container.appendChild(row);
-
-      const ac = new google.maps.places.Autocomplete(input, {
-        types: ["(cities)"],
-      });
-      autocompleteObjects.push(ac);
-
-      ac.addListener("place_changed", () => {
-        const place = ac.getPlace();
-        if (!place.geometry) return;
-        updateStopsArray();
-      });
-
-      Sortable.create(container, {
-        animation: 150,
-        onEnd: () => updateStopsArray(),
-      });
-
-      updateStopsArray();
-    }
-
-    function updateStopsArray() {
-      stops = Array.from(document.querySelectorAll(".stop-row input"))
-        .map((i) => i.value.trim())
-        .filter(Boolean);
-    }
-
-    function calculateRoute() {
-      if (stops.length < 2) return alert("Add at least two stops");
-
-      const origin = stops[0];
-      const destination = stops[stops.length - 1];
-      const waypoints = stops.slice(1, -1).map((loc) => ({ location: loc, stopover: true }));
-
-      directionsService.route(
-        {
-          origin,
-          destination,
-          waypoints,
-          travelMode: google.maps.TravelMode.DRIVING,
-        },
-        (result, status) => {
-          if (status === "OK") {
-            directionsRenderer.setDirections(result);
-            const totalMiles = computeTotalMiles(result);
-            const rate = parseFloat(document.getElementById("rateInput").value || "0");
-            const totalCAD = (totalMiles * rate).toFixed(2);
-            const totalUSD = (totalCAD / 1.38).toFixed(2);
-
-            document.getElementById("results").innerHTML = `
-              <b>Total Distance:</b> ${totalMiles} mi<br>
-              <b>Rate:</b> ${rate} CAD/mi<br>
-              <b>Total Cost:</b> ${totalCAD} CAD / ${totalUSD} USD
-            `;
-          } else {
-            alert("Route calculation failed: " + status);
-          }
-        }
-      );
-    }
-
-    function computeTotalMiles(result) {
-      let total = 0;
-      const route = result.routes[0];
-      route.legs.forEach((leg) => {
-        total += leg.distance.value;
-      });
-      return (total / 1609.34).toFixed(1);
-    }
-
-    function shareRoute() {
-      if (!stops.length) return alert("No route to share yet");
-      const rate = document.getElementById("rateInput").value;
-      const results = document.getElementById("results").textContent || "";
-      const text = `🚚 Route: ${stops.join(" → ")}\n${results}\nRate: ${rate} CAD/mi`;
-
-      if (navigator.share) {
-        navigator
-          .share({
-            title: "Route Details",
-            text,
-          })
-          .catch(() => alert("Share canceled"));
-      } else {
-        navigator.clipboard.writeText(text);
-        alert("Copied route details to clipboard!");
-      }
-    }
-
-    function saveRoute() {
-      const emailKey = localStorage.getItem("currentEmail") || "defaultEmail";
-      const savedRoutes = JSON.parse(localStorage.getItem(emailKey) || "[]");
-      savedRoutes.push({ stops, timestamp: new Date().toISOString() });
-      localStorage.setItem(emailKey, JSON.stringify(savedRoutes));
-      alert("Route pinned to email!");
-    }
-  </script>
+  <script src="mapPanel.js"></script>
 </body>
 </html>
