@@ -1,0 +1,107 @@
+body, html {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  font-family: "Segoe UI", sans-serif;
+}
+
+#panel {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background: #f4f4f6;
+}
+
+header {
+  background: #0078d4;
+  color: white;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 10px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+header h2 {
+  margin: 0;
+  font-size: 16px;
+}
+
+#actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+#actions button {
+  border: none;
+  background: #fff;
+  color: #0078d4;
+  border-radius: 8px;
+  font-size: 18px;
+  cursor: pointer;
+  padding: 4px 8px;
+  transition: all 0.2s ease;
+}
+
+#actions button:hover {
+  background: #e6f0ff;
+}
+
+#rateInput {
+  width: 60px;
+  border-radius: 6px;
+  border: none;
+  padding: 4px;
+  text-align: right;
+}
+
+#stops {
+  flex: 0 0 auto;
+  padding: 8px;
+  overflow-y: auto;
+}
+
+.stop {
+  background: #fff;
+  border-radius: 10px;
+  padding: 6px;
+  margin-bottom: 6px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: grab;
+}
+
+.stop input {
+  flex: 1;
+  border: none;
+  outline: none;
+  padding: 6px;
+}
+
+.stop .remove {
+  background: none;
+  border: none;
+  color: #f33;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+#map {
+  flex: 1;
+}
+
+footer {
+  background: #fff;
+  padding: 8px;
+  text-align: center;
+  border-top: 1px solid #ccc;
+  font-weight: 500;
+}
+
+.unit {
+  font-size: 12px;
+  opacity: 0.9;
+}
