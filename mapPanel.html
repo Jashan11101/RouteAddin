@@ -1,318 +1,275 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <title>Route & Rate — Map Panel (Draggable Stops + Autocomplete + Share)</title>
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <style>
-    :root{
-      --primary:#0078d4; --muted:#eef2f6; --card:#fff; --ui-font:"Segoe UI",Roboto,Arial;
-    }
-    html,body{height:100%;margin:0;font-family:var(--ui-font);background:#f6f8fa;overflow:hidden}
-    #container{display:flex;flex-direction:column;height:100%}
-    #top{display:flex;flex-wrap:wrap;gap:8px;padding:10px;align-items:center;background:linear-gradient(180deg,#fff,#fbfdff);box-shadow:0 1px 0 rgba(0,0,0,0.04);z-index:10}
-    .input{background:var(--card);border:1px solid #e2e8ef;padding:8px;border-radius:8px;box-shadow:0 1px 4px rgba(12,20,30,0.03);display:flex;align-items:center;gap:6px}
-    input[type="text"], input[type="number"], select{border:none;outline:none;background:transparent;font-size:14px}
-    .icon-btn{display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;border-radius:10px;background:var(--muted);border:none;cursor:pointer;box-shadow:0 2px 6px rgba(0,0,0,0.06);transition:transform .12s,background .12s}
-    .icon-btn:hover{transform:translateY(-2px);background:#e6f2ff}
-    .icon-btn.primary{background:var(--primary);color:#fff}
-    #middle{display:flex;gap:12px;padding:12px;flex:1;box-sizing:border-box;overflow:hidden}
-    #left{width:380px;min-width:240px;max-width:420px;display:flex;flex-direction:column;gap:12px;overflow:auto}
-    #stopsCard{background:var(--card);border-radius:12px;padding:10px;box-shadow:0 6px 18px rgba(12,20,30,0.04);display:flex;flex-direction:column;gap:8px;max-height:520px;overflow:auto}
-    #stopsList{list-style:none;margin:0;padding:6px;display:flex;flex-direction:column;gap:8px}
-    li.stop-item{display:flex;gap:8px;align-items:center;background:linear-gradient(180deg,#fff,#fbfdff);border:1px solid #e8eef6;padding:6px;border-radius:8px}
-    .stop-handle{cursor:grab;padding:6px;border-radius:6px;color:#6b7581}
-    .stop-input{flex:1;padding:6px;border-radius:6px;border:1px solid transparent;background:transparent;font-size:14px}
-    .stop-actions{display:flex;gap:6px}
-    .small-ic{width:32px;height:32px;display:inline-flex;align-items:center;justify-content:center;border-radius:6px;background:var(--muted);border:none;cursor:pointer}
-    .small-ic:hover{background:#e6f2ff;transform:translateY(-1px)}
-    #mapWrap{flex:1;border-radius:12px;overflow:hidden;box-shadow:0 6px 18px rgba(12,20,30,0.04)}
-    #map{width:100%;height:100%;min-height:420px}
-    #bottom{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 12px;background:#fff;border-top:1px solid #e9eef6;box-shadow:0 -2px 8px rgba(12,20,30,0.02);position:sticky;bottom:0;z-index:20}
-    #output{font-weight:700;font-size:15px;color:#0b2a43}
-    .muted{color:#475569;font-size:13px}
-    /* share popup */
-    #sharePopup{position:absolute;right:18px;top:70px;background:#fff;border-radius:8px;box-shadow:0 8px 30px rgba(0,0,0,0.12);padding:8px;display:none;flex-direction:column;gap:8px;z-index:99999}
-    .share-row{display:flex;gap:8px;align-items:center}
-    .share-link{display:inline-flex;align-items:center;gap:8px;padding:8px;border-radius:8px;background:#f6f8fb;border:1px solid #eef2f6;text-decoration:none;color:#0b2a43}
-    @media(max-width:900px){#middle{flex-direction:column;padding:8px}#left{width:auto;max-width:100%}#map{min-height:360px}}
-  </style>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Route & Rate Panel</title>
+<link rel="stylesheet" href="panel.css" />
 
-  <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+<style>
+  :root {
+    --accent: #0078d4;
+    --light-bg: #f3f4f6;
+  }
+
+  body {
+    margin: 0;
+    font-family: "Segoe UI", Roboto, Arial, sans-serif;
+    background: #fff;
+    color: #222;
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+  }
+
+  header {
+    background: var(--accent);
+    color: #fff;
+    padding: 10px 14px;
+    font-weight: 600;
+    font-size: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  header button {
+    background: transparent;
+    border: none;
+    color: #fff;
+    font-size: 18px;
+    cursor: pointer;
+  }
+
+  #mapContainer {
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  #map {
+    flex: 1;
+    border-radius: 6px;
+    overflow: hidden;
+  }
+
+  #stopsList {
+    background: var(--light-bg);
+    padding: 6px 10px;
+    border-radius: 6px;
+    margin: 6px 10px;
+    font-size: 14px;
+    min-height: 90px;
+  }
+
+  .stopItem {
+    display: flex;
+    align-items: center;
+    background: #fff;
+    border-radius: 6px;
+    margin-bottom: 6px;
+    padding: 6px 8px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    cursor: grab;
+  }
+
+  .stopItem input {
+    flex: 1;
+    border: none;
+    outline: none;
+    background: transparent;
+    font-size: 14px;
+  }
+
+  .stopItem .icon {
+    margin-right: 6px;
+    color: var(--accent);
+  }
+
+  footer {
+    display: flex;
+    justify-content: space-around;
+    padding: 8px 0;
+    background: #f9fafb;
+    border-top: 1px solid #ddd;
+    position: sticky;
+    bottom: 0;
+  }
+
+  footer button {
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    padding: 8px 14px;
+    font-size: 13px;
+    cursor: pointer;
+    box-shadow: 0 3px 8px rgba(0,0,0,0.2);
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+
+  footer button:hover {
+    background: #005ea6;
+  }
+
+  #details {
+    text-align: center;
+    font-size: 14px;
+    padding: 4px 0;
+    color: #555;
+  }
+
+  .hidden { display: none; }
+</style>
 </head>
+
 <body>
-  <div id="container">
-    <div id="top">
-      <div class="input" style="flex:1;min-width:200px">
-        <input id="searchBox" type="text" placeholder="Type city (autocomplete) — or leave blank & add stops below" />
-      </div>
+  <header>
+    <span>Route & Rate</span>
+    <button id="closeBtn" title="Close Panel">✕</button>
+  </header>
 
-      <div class="input" style="max-width:120px">
-        <input id="rate" type="number" value="2.5" step="0.1" />
-      </div>
-
-      <div class="input" style="max-width:96px">
-        <select id="currency"><option>CAD</option><option>USD</option><option>INR</option></select>
-      </div>
-
-      <button id="calcBtn" class="icon-btn primary" title="Calculate route"><span>🛣️</span></button>
-      <div style="flex:1"></div>
-      <button id="shareUiBtn" class="icon-btn" title="Share route"><span>🔗</span></button>
-    </div>
-
-    <div id="middle">
-      <div id="left">
-        <div style="display:flex;justify-content:space-between;align-items:center">
-          <div style="font-weight:700;color:#0b2a43">Locations (drag to reorder)</div>
-          <div style="display:flex;gap:8px">
-            <button id="addStopBtn" class="icon-btn" title="Add location"><span>＋</span></button>
-            <button id="clearStops" class="icon-btn" title="Clear all"><span>🗑️</span></button>
-          </div>
-        </div>
-
-        <div id="stopsCard">
-          <ul id="stopsList"></ul>
-        </div>
-
-        <div style="display:flex;gap:8px;align-items:center;margin-top:6px">
-          <button id="saveBtn" class="icon-btn" title="Save route"><span>💾</span></button>
-          <button id="openFullBtn" class="icon-btn" title="Open in Google Maps"><span>🗺️</span></button>
-        </div>
-      </div>
-
-      <div id="mapWrap">
-        <div id="map"></div>
-      </div>
-    </div>
-
-    <div id="bottom">
-      <div>
-        <div class="muted">Route:</div>
-        <div id="routeSummary" class="muted">Not calculated</div>
-      </div>
-      <div id="output">Distance: 0.0 mi — CAD 0.00 (≈ USD 0.00)</div>
-    </div>
+  <div id="mapContainer">
+    <div id="stopsList"></div>
+    <div id="details"></div>
+    <div id="map"></div>
   </div>
 
-  <div id="sharePopup" role="dialog" aria-hidden="true">
-    <div class="share-row">
-      <a id="waLink" class="share-link" target="_blank" rel="noopener">WhatsApp</a>
-      <a id="mailLink" class="share-link">Outlook/Email</a>
-    </div>
-    <div class="share-row">
-      <button id="copyShare" class="icon-btn" title="Copy to clipboard">📋</button>
-      <button id="nativeShare" class="icon-btn" title="Native share">📤</button>
-    </div>
-  </div>
+  <footer>
+    <button id="btnSave" title="Save Route">💾 Save</button>
+    <button id="btnShare" title="Share Route">🔗 Share</button>
+    <button id="btnGoogle" title="Open in Google Maps">🌍 Open</button>
+  </footer>
 
-<script>
-/* ---------- Configuration ---------- */
-const MAP_API_KEY = 'AIzaSyChYFu82xWcUOpUS23eSbuMPgGm7swXuSo';
-const DEFAULT_RATE = 2.5;
-let map, directionsService, directionsRenderer;
-let autocompleteSearch; // top search box autocomplete
-const stopsList = document.getElementById('stopsList');
+  <script>
+    let map, directionsService, directionsRenderer;
+    let stops = [];
 
-/* ---------- Map init ---------- */
-function initMap(){
-  map = new google.maps.Map(document.getElementById('map'), { center:{lat:39.5,lng:-98.35}, zoom:5, gestureHandling:'greedy' });
-  directionsService = new google.maps.DirectionsService();
-  directionsRenderer = new google.maps.DirectionsRenderer({ map: map, draggable: true });
-  directionsRenderer.addListener('directions_changed', onDirectionsChanged);
+    const urlParams = new URLSearchParams(location.search);
+    const selText = decodeURIComponent(urlParams.get("text") || "").trim();
 
-  // init searchBox autocomplete (top small box)
-  const searchBoxEl = document.getElementById('searchBox');
-  autocompleteSearch = new google.maps.places.Autocomplete(searchBoxEl, { types:['(cities)'] });
-  autocompleteSearch.addListener('place_changed', () => {
-    const place = autocompleteSearch.getPlace();
-    if(!place || !place.formatted_address) return;
-    // add as new top location and autofocus input
-    addStop(place.formatted_address);
-    // clear search text
-    searchBoxEl.value = '';
-  });
-}
+    document.getElementById("closeBtn").addEventListener("click", () => {
+      window.parent.postMessage({ type: "closePanel" }, "*");
+    });
 
-/* ---------- Stop item creation + places autocomplete for each input ---------- */
-function createStop(value=''){
-  const li = document.createElement('li');
-  li.className = 'stop-item';
-  li.innerHTML = `
-    <div class="stop-handle" title="Drag">⋮⋮</div>
-    <input class="stop-input" value="${value.replace(/"/g,'&quot;')}" placeholder="City, Province/State"/>
-    <div class="stop-actions">
-      <button class="small-ic insert-after" title="Insert after">＋</button>
-      <button class="small-ic remove" title="Remove">✕</button>
-    </div>`;
-  const input = li.querySelector('.stop-input');
-
-  // Attach a Places Autocomplete to this input
-  // Note: we create after the element is attached to DOM for Google API to work reliably
-  setTimeout(()=> {
-    try {
-      const ac = new google.maps.places.Autocomplete(input, { types:['(cities)'] });
-      ac.setFields(['formatted_address','address_components','geometry','name']);
-      ac.addListener('place_changed', () => {
-        const p = ac.getPlace();
-        if(p && p.formatted_address) input.value = p.formatted_address;
+    async function initMap() {
+      map = new google.maps.Map(document.getElementById("map"), {
+        center: { lat: 43.7, lng: -79.42 },
+        zoom: 6,
+        mapTypeControl: false,
       });
-    } catch(e){}
-  }, 50);
+      directionsService = new google.maps.DirectionsService();
+      directionsRenderer = new google.maps.DirectionsRenderer({ map });
 
-  li.querySelector('.remove').onclick = () => { li.remove(); };
-  li.querySelector('.insert-after').onclick = () => { const newLi = createStop(''); li.after(newLi); newLi.querySelector('.stop-input').focus(); };
-  input.addEventListener('keyup', (ev)=>{ if(ev.key==='Enter') computeRoute(); });
-
-  return li;
-}
-function addStop(val=''){ const el = createStop(val); stopsList.appendChild(el); el.querySelector('.stop-input').focus(); }
-
-/* Make stops sortable (draggable) */
-new Sortable(stopsList, { animation:150, handle:'.stop-handle', onEnd: ()=>{ /* after reorder */ } });
-
-/* ---------- Compute route logic (first = origin, last = destination) ---------- */
-function computeRoute(){
-  const nodes = Array.from(document.querySelectorAll('.stop-input')).map(i=>i.value.trim()).filter(Boolean);
-  if(nodes.length < 2){ alert('Please add at least 2 locations (origin + destination)'); return; }
-  const origin = nodes[0], destination = nodes[nodes.length-1], stops = nodes.slice(1, nodes.length-1);
-  const waypoints = stops.map(s=>({location:s, stopover:true}));
-
-  directionsService.route({
-    origin, destination, waypoints, travelMode:google.maps.TravelMode.DRIVING, optimizeWaypoints:false
-  }, (res,status) => {
-    if(status === 'OK'){
-      directionsRenderer.setDirections(res);
-      let total = 0; res.routes[0].legs.forEach(l=> total += l.distance.value);
-      const miles = total/1609.34;
-      const rate = parseFloat(document.getElementById('rate').value) || DEFAULT_RATE;
-      const currency = document.getElementById('currency').value || 'CAD';
-      const cost = (miles * rate).toFixed(2);
-      const usd = (currency === 'CAD') ? (cost * 0.73).toFixed(2) : (currency === 'USD' ? cost : (cost/83).toFixed(2));
-      document.getElementById('output').innerText = `Distance: ${miles.toFixed(1)} mi — ${currency} ${cost} (≈ USD ${usd})`;
-      document.getElementById('routeSummary').innerText = `${origin} → ${stops.join(' → ')}${stops.length? ' → ' : ''}${destination}`;
-      // store last computed for share
-      window.lastRouteData = { origin, stops, destination, miles: miles.toFixed(1), cost, currency, usd };
-    } else {
-      document.getElementById('output').innerText = 'Route error: ' + status;
+      if (selText) {
+        parseSelection(selText);
+      }
     }
-  });
-}
 
-/* When user drags route directly on map (DirectionRenderer draggable) */
-function onDirectionsChanged(){
-  const dirs = directionsRenderer.getDirections(); if(!dirs) return;
-  let total = 0; dirs.routes[0].legs.forEach(l=> total += l.distance.value);
-  const miles = total/1609.34;
-  const rate = parseFloat(document.getElementById('rate').value) || DEFAULT_RATE;
-  const currency = document.getElementById('currency').value || 'CAD';
-  const cost = (miles * rate).toFixed(2);
-  const usd = (currency === 'CAD') ? (cost * 0.73).toFixed(2) : (currency === 'USD' ? cost : (cost/83).toFixed(2));
-  document.getElementById('output').innerText = `Distance: ${miles.toFixed(1)} mi — ${currency} ${cost} (≈ USD ${usd})`;
-  document.getElementById('routeSummary').innerText = 'Route updated (map)';
-  window.lastRouteData = { miles: miles.toFixed(1), cost, currency, usd }; // minimal
-}
+    function parseSelection(text) {
+      const routePattern = /(.+?)(?:\s*[-–—]\s*|\s+to\s+)(.+)/i;
+      let from = "", to = "";
+      if (routePattern.test(text)) {
+        const m = text.match(routePattern);
+        from = m[1].trim();
+        to = m[2].trim();
+      } else {
+        from = text.trim();
+      }
 
-/* ---------- Share popup logic ---------- */
-const sharePopup = document.getElementById('sharePopup');
-document.getElementById('shareUiBtn').addEventListener('click', (e)=>{
-  sharePopup.style.display = sharePopup.style.display === 'flex' ? 'none' : 'flex';
-  positionSharePopup();
-});
-function positionSharePopup(){
-  const rect = document.getElementById('shareUiBtn').getBoundingClientRect();
-  sharePopup.style.top = (rect.bottom + 8) + 'px';
-  sharePopup.style.right = '18px';
-}
+      if (from) stops.push({ label: from });
+      if (to) stops.push({ label: to });
+      renderStops();
+      if (stops.length >= 2) calcRoute();
+    }
 
-/* Create share links (WhatsApp / Mailto) */
-function buildShareText(){
-  const data = window.lastRouteData || {};
-  const origin = data.origin || (document.querySelector('.stop-input')? document.querySelector('.stop-input').value : '');
-  const stops = data.stops ? data.stops.join(' -> ') : Array.from(document.querySelectorAll('.stop-input')).map(i=>i.value).slice(1,-1).join(' -> ');
-  const dest = data.destination || (Array.from(document.querySelectorAll('.stop-input')).pop()? Array.from(document.querySelectorAll('.stop-input')).pop().value : '');
-  const miles = data.miles || '0.0';
-  const cost = data.cost || '0.00';
-  const currency = data.currency || document.getElementById('currency').value;
-  const usd = data.usd || '0.00';
-  const routeLine = origin + (stops ? ' -> ' + stops : '') + (dest ? ' -> ' + dest : '');
-  return `Route: ${routeLine}\nDistance: ${miles} mi\nEstimated: ${currency} ${cost} (≈ USD ${usd})`;
-}
+    function renderStops() {
+      const list = document.getElementById("stopsList");
+      list.innerHTML = "";
+      stops.forEach((s, i) => {
+        const div = document.createElement("div");
+        div.className = "stopItem";
+        div.draggable = true;
+        div.dataset.index = i;
 
-/* WhatsApp link */
-document.getElementById('waLink').addEventListener('click', (e)=>{
-  const txt = encodeURIComponent(buildShareText());
-  const url = `https://wa.me/?text=${txt}`;
-  window.open(url, '_blank');
-});
+        div.innerHTML = `<span class="icon">📍</span><input value="${s.label}" />`;
+        list.appendChild(div);
 
-/* Mail (mailto) */
-document.getElementById('mailLink').addEventListener('click', (e)=>{
-  const body = encodeURIComponent(buildShareText());
-  const subject = encodeURIComponent('Route & Rate');
-  const mailto = `mailto:?subject=${subject}&body=${body}`;
-  // open in new tab for web clients
-  window.location.href = mailto;
-});
+        div.addEventListener("dragstart", e => {
+          e.dataTransfer.setData("text/plain", i);
+        });
+        div.addEventListener("dragover", e => e.preventDefault());
+        div.addEventListener("drop", e => {
+          const fromIdx = +e.dataTransfer.getData("text/plain");
+          const toIdx = +e.currentTarget.dataset.index;
+          const [moved] = stops.splice(fromIdx, 1);
+          stops.splice(toIdx, 0, moved);
+          renderStops();
+          if (stops.length >= 2) calcRoute();
+        });
+      });
+    }
 
-/* Copy and native share */
-document.getElementById('copyShare').addEventListener('click', async ()=>{
-  const text = buildShareText();
-  try { await navigator.clipboard.writeText(text); alert('Copied to clipboard'); } catch(e){ alert('Copy failed'); }
-});
-document.getElementById('nativeShare').addEventListener('click', async ()=>{
-  const text = buildShareText();
-  if(navigator.share){ try { await navigator.share({ title:'Route & Rate', text }); } catch(e){ /* user canceled */ } }
-  else { alert('Native share not supported'); }
-});
+    function calcRoute() {
+      if (stops.length < 2) return;
+      const origin = stops[0].label;
+      const destination = stops[stops.length - 1].label;
+      const waypoints = stops.slice(1, -1).map(s => ({ location: s.label, stopover: true }));
 
-/* ---------- UI wiring ---------- */
-document.getElementById('addStopBtn').addEventListener('click', ()=> addStop(''));
-document.getElementById('clearStops').addEventListener('click', ()=> stopsList.innerHTML = '');
-document.getElementById('openFullBtn').addEventListener('click', ()=>{
-  const nodes = Array.from(document.querySelectorAll('.stop-input')).map(i=>i.value.trim()).filter(Boolean);
-  if(nodes.length < 2){ alert('Add at least origin and destination'); return; }
-  const origin = encodeURIComponent(nodes[0]);
-  const destination = encodeURIComponent(nodes[nodes.length-1]);
-  const waypoints = nodes.slice(1, nodes.length-1).map(s=>encodeURIComponent(s)).join('|');
-  const url = `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${destination}&waypoints=${waypoints}`;
-  window.open(url, '_blank');
-});
-document.getElementById('saveBtn').addEventListener('click', ()=>{
-  const nodes = Array.from(document.querySelectorAll('.stop-input')).map(i=>i.value.trim()).filter(Boolean);
-  localStorage.setItem('route.saved', JSON.stringify({ nodes, rate: document.getElementById('rate').value, currency: document.getElementById('currency').value }));
-  alert('Saved locally');
-});
-document.getElementById('calcBtn').addEventListener('click', computeRoute);
+      directionsService.route(
+        { origin, destination, waypoints, travelMode: "DRIVING" },
+        (res, status) => {
+          if (status === "OK" && res.routes.length) {
+            directionsRenderer.setDirections(res);
+            const leg = res.routes[0].legs.reduce((a, l) => {
+              a.distance += l.distance.value;
+              a.duration += l.duration.value;
+              return a;
+            }, { distance: 0, duration: 0 });
+            const distKm = (leg.distance / 1000).toFixed(1);
+            const hrs = (leg.duration / 3600).toFixed(1);
+            document.getElementById("details").textContent = `Distance: ${distKm} km | Duration: ${hrs} hrs`;
+          } else {
+            document.getElementById("details").textContent = "Unable to find route.";
+          }
+        }
+      );
+    }
 
-/* ---------- Support receiving selected text from parent (iframe) or query param ---------- */
-function setFromText(txt){
-  if(!txt) return;
-  // parse into multiple parts (A - B or A to B or many parts)
-  txt = txt.replace(/\s+/g,' ').trim();
-  const parts = txt.split(/\s*(?:[-–—]|to|TO|To)\s*/i).map(p=>p.trim()).filter(Boolean);
-  stopsList.innerHTML = '';
-  parts.forEach(p => addStop(p));
-}
-window.addEventListener('message', (ev)=>{
-  try {
-    const d = ev.data || {};
-    if(d && d.type === 'setAddress' && d.text) setFromText(d.text);
-  } catch (e){}
-});
-(function(){
-  const q = new URLSearchParams(location.search).get('text');
-  if(q) setFromText(decodeURIComponent(q));
-})();
+    document.getElementById("btnSave").addEventListener("click", () => {
+      const text = stops.map(s => s.label).join(" → ");
+      const blob = new Blob([text], { type: "text/plain" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = "route.txt";
+      a.click();
+    });
 
-/* ---------- expose initMap for Google callback ---------- */
-window.initMap = initMap;
-</script>
+    document.getElementById("btnGoogle").addEventListener("click", () => {
+      if (stops.length < 2) return;
+      const origin = encodeURIComponent(stops[0].label);
+      const destination = encodeURIComponent(stops[stops.length - 1].label);
+      const waypoints = stops.slice(1, -1).map(s => encodeURIComponent(s.label)).join("/");
+      let url = `https://www.google.com/maps/dir/${origin}/${waypoints ? waypoints + "/" : ""}${destination}`;
+      window.open(url, "_blank");
+    });
 
-<!-- Google Maps + Places (places library is required for autocomplete) -->
-<script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyChYFu82xWcUOpUS23eSbuMPgGm7swXuSo&libraries=places&callback=initMap"></script>
+    document.getElementById("btnShare").addEventListener("click", async () => {
+      const text = stops.map(s => s.label).join(" → ");
+      const info = document.getElementById("details").textContent;
+      const message = `Route: ${text}\n${info}`;
+      try {
+        await navigator.share({ text: message });
+      } catch (err) {
+        alert("Sharing not supported. Copy manually:\n\n" + message);
+      }
+    });
+  </script>
+
+  <script async src="https://maps.googleapis.com/maps/api/js?key=YOUR_API_KEY&callback=initMap"></script>
 </body>
 </html>
-
-
-
-
