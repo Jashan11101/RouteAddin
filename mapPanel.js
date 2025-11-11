@@ -1,119 +1,99 @@
-let map, directionsService, directionsRenderer, stopsContainer;
+let map, directionsService, directionsRenderer;
+let stops = [];
 
-document.addEventListener("DOMContentLoaded", async () => {
-  map = new google.maps.Map(document.getElementById("map"), {
-    zoom: 5,
-    center: { lat: 43.7, lng: -79.4 }, // default Toronto
-    disableDefaultUI: false,
-  });
-
-  directionsService = new google.maps.DirectionsService();
-  directionsRenderer = new google.maps.DirectionsRenderer({ map });
-
-  stopsContainer = document.getElementById("stops");
-
-  // Initial stop setup
+window.onload = () => {
   const params = new URLSearchParams(window.location.search);
-  const text = params.get("text") || "";
-  const guessed = smartSplit(text);
-  guessed.forEach(addStop);
+  const selectedText = params.get("text") || "";
 
+  document.getElementById("closeBtn").onclick = () => {
+    parent.postMessage("closePanel", "*");
+  };
+
+  document.getElementById("addStopBtn").onclick = () => addStop("");
   document.getElementById("calcBtn").onclick = calculateRoute;
   document.getElementById("shareBtn").onclick = shareRoute;
   document.getElementById("saveBtn").onclick = saveRoute;
 
-  initDragAndDrop();
-  initAutoComplete();
-});
+  initMap();
 
-function smartSplit(text) {
-  // Try to detect cities from text like "Toronto to Chicago"
-  const parts = text.split(/[-–—]| to /i).map(s => s.trim()).filter(Boolean);
-  return parts.length >= 2 ? parts : [text];
-}
-
-function addStop(value = "") {
-  const div = document.createElement("div");
-  div.className = "stop";
-  div.draggable = true;
-
-  const input = document.createElement("input");
-  input.placeholder = "Enter city...";
-  input.value = value;
-
-  const remove = document.createElement("button");
-  remove.textContent = "✖";
-  remove.className = "remove";
-  remove.onclick = () => div.remove();
-
-  div.appendChild(input);
-  div.appendChild(remove);
-  stopsContainer.appendChild(div);
-
-  initAutocompleteField(input);
-}
-
-function initDragAndDrop() {
-  new Sortable(stopsContainer, {
-    animation: 150,
-    ghostClass: "drag-ghost"
-  });
-}
-
-function initAutoComplete() {
-  Array.from(stopsContainer.querySelectorAll("input")).forEach(initAutocompleteField);
-}
-
-function initAutocompleteField(input) {
-  const autocomplete = new google.maps.places.Autocomplete(input, {
-    types: ["(cities)"]
-  });
-}
-
-async function calculateRoute() {
-  const stops = Array.from(stopsContainer.querySelectorAll("input")).map(i => i.value.trim()).filter(Boolean);
-  if (stops.length < 2) {
-    alert("Please enter at least an origin and destination");
-    return;
+  if (selectedText) {
+    stops = selectedText.split(/\s*,\s*|\s*to\s*|\s*-\s*/i).filter(x => x);
+    renderStops();
   }
+};
 
-  const waypoints = stops.slice(1, -1).map(s => ({ location: s, stopover: true }));
-  const rate = parseFloat(document.getElementById("rateInput").value || 3);
-
-  const res = await directionsService.route({
-    origin: stops[0],
-    destination: stops[stops.length - 1],
-    waypoints,
-    travelMode: google.maps.TravelMode.DRIVING,
+function initMap() {
+  map = new google.maps.Map(document.getElementById("map"), {
+    center: { lat: 43.65, lng: -79.38 },
+    zoom: 6
   });
+  directionsService = new google.maps.DirectionsService();
+  directionsRenderer = new google.maps.DirectionsRenderer({ map });
+}
 
-  directionsRenderer.setDirections(res);
+function renderStops() {
+  const container = document.getElementById("locations");
+  container.innerHTML = "";
+  stops.forEach((stop, i) => {
+    const input = document.createElement("input");
+    input.value = stop;
+    input.className = "location-input";
+    input.placeholder = `Stop ${i + 1}`;
+    input.oninput = e => stops[i] = e.target.value;
+    container.appendChild(input);
+  });
+}
 
-  const totalMiles = res.routes[0].legs.reduce((acc, leg) => acc + leg.distance.value, 0) / 1609.34;
-  const cad = totalMiles * rate;
-  const usd = cad * 0.73;
+function addStop(val = "") {
+  stops.push(val);
+  renderStops();
+}
 
-  document.getElementById("summary").innerHTML = `
-    🚗 Total Miles: <b>${totalMiles.toFixed(1)}</b> |
-    💰 ${cad.toFixed(2)} CAD (${usd.toFixed(2)} USD)
-  `;
+function calculateRoute() {
+  if (stops.length < 2) return alert("Need at least 2 stops.");
+
+  const waypoints = stops.slice(1, -1).map(loc => ({ location: loc, stopover: true }));
+  directionsService.route(
+    {
+      origin: stops[0],
+      destination: stops[stops.length - 1],
+      waypoints,
+      travelMode: "DRIVING"
+    },
+    (result, status) => {
+      if (status === "OK") {
+        directionsRenderer.setDirections(result);
+        const route = result.routes[0].legs;
+        let totalMiles = 0;
+        route.forEach(r => totalMiles += r.distance.value / 1609.34);
+        const rateCAD = totalMiles * 3.5;
+        const rateUSD = rateCAD * 0.74;
+
+        alert(`Total Miles: ${totalMiles.toFixed(1)}\nRate: ${rateCAD.toFixed(2)} CAD (${rateUSD.toFixed(2)} USD)`);
+      } else {
+        alert("Route not found: " + status);
+      }
+    }
+  );
 }
 
 function shareRoute() {
-  const stops = Array.from(stopsContainer.querySelectorAll("input")).map(i => i.value).join(" ➜ ");
-  const summary = document.getElementById("summary").innerText;
-  const text = `Route: ${stops}\n${summary}`;
+  const routeText = stops.join(" → ");
+  const shareData = {
+    title: "Route Details",
+    text: `Route: ${routeText}`,
+    url: location.href
+  };
   if (navigator.share) {
-    navigator.share({ title: "Route Details", text });
+    navigator.share(shareData).catch(console.error);
   } else {
-    alert("Share API not supported — copying to clipboard.");
-    navigator.clipboard.writeText(text);
+    alert("Sharing not supported on this device.");
   }
 }
 
 function saveRoute() {
-  const stops = Array.from(stopsContainer.querySelectorAll("input")).map(i => i.value);
-  const key = "route_" + location.href.split("?text=")[1];
-  localStorage.setItem(key, JSON.stringify(stops));
-  alert("📌 Route pinned to email!");
+  const key = "route_" + Date.now();
+  chrome.storage.local.set({ [key]: stops }, () => {
+    alert("Route saved to this email.");
+  });
 }
