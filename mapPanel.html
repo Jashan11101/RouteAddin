@@ -4,26 +4,24 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Route & Rate Panel</title>
-<link rel="stylesheet" href="panel.css" />
+<link
+  rel="stylesheet"
+  href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.min.js"></script>
 
 <style>
-  :root {
-    --accent: #0078d4;
-    --light-bg: #f3f4f6;
-  }
-
   body {
     margin: 0;
     font-family: "Segoe UI", Roboto, Arial, sans-serif;
-    background: #fff;
-    color: #222;
     display: flex;
     flex-direction: column;
     height: 100vh;
   }
 
   header {
-    background: var(--accent);
+    background: #0078d4;
     color: #fff;
     padding: 10px 14px;
     font-weight: 600;
@@ -41,51 +39,8 @@
     cursor: pointer;
   }
 
-  #mapContainer {
-    flex: 1;
-    position: relative;
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
-  }
-
   #map {
     flex: 1;
-    border-radius: 6px;
-    overflow: hidden;
-  }
-
-  #stopsList {
-    background: var(--light-bg);
-    padding: 6px 10px;
-    border-radius: 6px;
-    margin: 6px 10px;
-    font-size: 14px;
-    min-height: 90px;
-  }
-
-  .stopItem {
-    display: flex;
-    align-items: center;
-    background: #fff;
-    border-radius: 6px;
-    margin-bottom: 6px;
-    padding: 6px 8px;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
-    cursor: grab;
-  }
-
-  .stopItem input {
-    flex: 1;
-    border: none;
-    outline: none;
-    background: transparent;
-    font-size: 14px;
-  }
-
-  .stopItem .icon {
-    margin-right: 6px;
-    color: var(--accent);
   }
 
   footer {
@@ -99,7 +54,7 @@
   }
 
   footer button {
-    background: var(--accent);
+    background: #0078d4;
     color: #fff;
     border: none;
     border-radius: 6px;
@@ -119,11 +74,10 @@
   #details {
     text-align: center;
     font-size: 14px;
-    padding: 4px 0;
-    color: #555;
+    padding: 6px;
+    color: #333;
+    background: #f3f4f6;
   }
-
-  .hidden { display: none; }
 </style>
 </head>
 
@@ -133,115 +87,75 @@
     <button id="closeBtn" title="Close Panel">✕</button>
   </header>
 
-  <div id="mapContainer">
-    <div id="stopsList"></div>
-    <div id="details"></div>
-    <div id="map"></div>
-  </div>
+  <div id="map"></div>
+  <div id="details">Enter route details...</div>
 
   <footer>
-    <button id="btnSave" title="Save Route">💾 Save</button>
-    <button id="btnShare" title="Share Route">🔗 Share</button>
-    <button id="btnGoogle" title="Open in Google Maps">🌍 Open</button>
+    <button id="btnSave">💾 Save</button>
+    <button id="btnShare">🔗 Share</button>
+    <button id="btnOpen">🌍 Open</button>
   </footer>
 
   <script>
-    let map, directionsService, directionsRenderer;
-    let stops = [];
-
-    const urlParams = new URLSearchParams(location.search);
-    const selText = decodeURIComponent(urlParams.get("text") || "").trim();
-
+    const selText = decodeURIComponent(new URLSearchParams(location.search).get("text") || "").trim();
     document.getElementById("closeBtn").addEventListener("click", () => {
       window.parent.postMessage({ type: "closePanel" }, "*");
     });
 
-    async function initMap() {
-      map = new google.maps.Map(document.getElementById("map"), {
-        center: { lat: 43.7, lng: -79.42 },
-        zoom: 6,
-        mapTypeControl: false,
-      });
-      directionsService = new google.maps.DirectionsService();
-      directionsRenderer = new google.maps.DirectionsRenderer({ map });
+    const map = L.map("map").setView([43.7, -79.42], 6);
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      maxZoom: 18,
+      attribution: "© OpenStreetMap contributors"
+    }).addTo(map);
 
-      if (selText) {
-        parseSelection(selText);
-      }
+    const routeLayer = L.Routing.control({
+      waypoints: [],
+      routeWhileDragging: true,
+      show: false
+    }).addTo(map);
+
+    const stops = [];
+    const routePattern = /(.+?)(?:\s*[-–—]\s*|\s+to\s+)(.+)/i;
+    if (routePattern.test(selText)) {
+      const m = selText.match(routePattern);
+      stops.push(m[1].trim(), m[2].trim());
+    } else if (selText) {
+      stops.push(selText.trim());
     }
 
-    function parseSelection(text) {
-      const routePattern = /(.+?)(?:\s*[-–—]\s*|\s+to\s+)(.+)/i;
-      let from = "", to = "";
-      if (routePattern.test(text)) {
-        const m = text.match(routePattern);
-        from = m[1].trim();
-        to = m[2].trim();
-      } else {
-        from = text.trim();
-      }
-
-      if (from) stops.push({ label: from });
-      if (to) stops.push({ label: to });
-      renderStops();
-      if (stops.length >= 2) calcRoute();
+    async function geocode(place) {
+      const r = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(place)}`);
+      const d = await r.json();
+      if (d && d[0]) return [parseFloat(d[0].lat), parseFloat(d[0].lon)];
+      return null;
     }
 
-    function renderStops() {
-      const list = document.getElementById("stopsList");
-      list.innerHTML = "";
-      stops.forEach((s, i) => {
-        const div = document.createElement("div");
-        div.className = "stopItem";
-        div.draggable = true;
-        div.dataset.index = i;
-
-        div.innerHTML = `<span class="icon">📍</span><input value="${s.label}" />`;
-        list.appendChild(div);
-
-        div.addEventListener("dragstart", e => {
-          e.dataTransfer.setData("text/plain", i);
-        });
-        div.addEventListener("dragover", e => e.preventDefault());
-        div.addEventListener("drop", e => {
-          const fromIdx = +e.dataTransfer.getData("text/plain");
-          const toIdx = +e.currentTarget.dataset.index;
-          const [moved] = stops.splice(fromIdx, 1);
-          stops.splice(toIdx, 0, moved);
-          renderStops();
-          if (stops.length >= 2) calcRoute();
-        });
-      });
-    }
-
-    function calcRoute() {
+    async function showRoute() {
       if (stops.length < 2) return;
-      const origin = stops[0].label;
-      const destination = stops[stops.length - 1].label;
-      const waypoints = stops.slice(1, -1).map(s => ({ location: s.label, stopover: true }));
-
-      directionsService.route(
-        { origin, destination, waypoints, travelMode: "DRIVING" },
-        (res, status) => {
-          if (status === "OK" && res.routes.length) {
-            directionsRenderer.setDirections(res);
-            const leg = res.routes[0].legs.reduce((a, l) => {
-              a.distance += l.distance.value;
-              a.duration += l.duration.value;
-              return a;
-            }, { distance: 0, duration: 0 });
-            const distKm = (leg.distance / 1000).toFixed(1);
-            const hrs = (leg.duration / 3600).toFixed(1);
-            document.getElementById("details").textContent = `Distance: ${distKm} km | Duration: ${hrs} hrs`;
-          } else {
-            document.getElementById("details").textContent = "Unable to find route.";
-          }
+      const coords = [];
+      for (let s of stops) {
+        const c = await geocode(s);
+        if (c) coords.push(L.latLng(c[0], c[1]));
+      }
+      if (coords.length < 2) {
+        document.getElementById("details").textContent = "Unable to find route.";
+        return;
+      }
+      routeLayer.setWaypoints(coords);
+      setTimeout(() => {
+        const total = routeLayer._routes?.[0]?.summary;
+        if (total) {
+          const km = (total.totalDistance / 1000).toFixed(1);
+          const hr = (total.totalTime / 3600).toFixed(1);
+          document.getElementById("details").textContent = `Distance: ${km} km | Duration: ${hr} hrs`;
         }
-      );
+      }, 1000);
     }
+
+    showRoute();
 
     document.getElementById("btnSave").addEventListener("click", () => {
-      const text = stops.map(s => s.label).join(" → ");
+      const text = stops.join(" → ");
       const blob = new Blob([text], { type: "text/plain" });
       const a = document.createElement("a");
       a.href = URL.createObjectURL(blob);
@@ -249,27 +163,21 @@
       a.click();
     });
 
-    document.getElementById("btnGoogle").addEventListener("click", () => {
-      if (stops.length < 2) return;
-      const origin = encodeURIComponent(stops[0].label);
-      const destination = encodeURIComponent(stops[stops.length - 1].label);
-      const waypoints = stops.slice(1, -1).map(s => encodeURIComponent(s.label)).join("/");
-      let url = `https://www.google.com/maps/dir/${origin}/${waypoints ? waypoints + "/" : ""}${destination}`;
-      window.open(url, "_blank");
-    });
-
     document.getElementById("btnShare").addEventListener("click", async () => {
-      const text = stops.map(s => s.label).join(" → ");
       const info = document.getElementById("details").textContent;
-      const message = `Route: ${text}\n${info}`;
+      const message = `Route: ${stops.join(" → ")}\n${info}`;
       try {
         await navigator.share({ text: message });
-      } catch (err) {
-        alert("Sharing not supported. Copy manually:\n\n" + message);
+      } catch {
+        alert("Copy manually:\n\n" + message);
       }
     });
-  </script>
 
-  <script async src="https://maps.googleapis.com/maps/api/js?key=YOUR_API_KEY&callback=initMap"></script>
+    document.getElementById("btnOpen").addEventListener("click", () => {
+      if (stops.length < 2) return;
+      const url = `https://www.google.com/maps/dir/${encodeURIComponent(stops[0])}/${encodeURIComponent(stops[1])}`;
+      window.open(url, "_blank");
+    });
+  </script>
 </body>
 </html>
