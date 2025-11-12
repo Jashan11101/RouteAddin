@@ -36,22 +36,27 @@
     .share-row{display:flex;gap:8px;align-items:center}
     .share-link{display:inline-flex;align-items:center;gap:8px;padding:8px;border-radius:8px;background:#f6f8fb;border:1px solid #eef2f6;text-decoration:none;color:#0b2a43}
     @media(max-width:900px){#middle{flex-direction:column;padding:8px}#left{width:auto;max-width:100%}#map{min-height:360px}}
-  </style>
+   </style>
 
   <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
 </head>
 <body>
   <div id="container">
     <div id="top">
+      <div style="display:flex;gap:8px">
+            <button id="addStopBtn" class="icon-btn" title="Add location"><span>＋</span></button>
+            <button id="clearStops" class="icon-btn" title="Clear all"><span>🗑️</span></button>
+          </div>
+
       <div class="input" style="max-width:120px">
         <input id="rate" type="number" value="2.5" step="0.1" />
       </div>
 
       <div class="input" style="max-width:96px">
-        <select id="currency"><option>CAD</option><option>USD</option><option>INR</option></select>
+        <select id="currency"><option>CAD</option><option>USD</option></select>
       </div>
 
-      <button id="calcBtn" class="icon-btn primary" title="Calculate route"><span>🛣️</span></button>
+      <button id="calcBtn" class="icon-btn primary" title="Calculate route"><span>📍</span></button>
       <div style="flex:1"></div>
       <button id="shareUiBtn" class="icon-btn" title="Share route"><span>🔗</span></button>
     </div>
@@ -59,19 +64,12 @@
     <div id="middle">
       <div id="left">
         <div style="display:flex;justify-content:space-between;align-items:center">
-          <div style="font-weight:700;color:#0b2a43">Locations (drag to reorder)</div>
-          <div style="display:flex;gap:8px">
-            <button id="addStopBtn" class="icon-btn" title="Add location"><span>＋</span></button>
-            <button id="clearStops" class="icon-btn" title="Clear all"><span>🗑️</span></button>
-          </div>
-        </div>
-
-        <div id="stopsCard">
+      
           <ul id="stopsList"></ul>
         </div>
 
         <div style="display:flex;gap:8px;align-items:center;margin-top:6px">
-          <button id="saveBtn" class="icon-btn" title="Save route"><span>💾</span></button>
+          <button id="saveBtn" class="icon-btn" title="Save route"><span>🗃️</span></button>
           <button id="openFullBtn" class="icon-btn" title="Open in Google Maps"><span>🗺️</span></button>
         </div>
       </div>
@@ -86,7 +84,7 @@
         <div class="muted">Route:</div>
         <div id="routeSummary" class="muted">Not calculated</div>
       </div>
-      <div id="output">Distance: 0.0 mi — CAD 0.00 (≈ USD 0.00)</div>
+      <div id="output">Distance: 0.0 mi — CAD 0.00 / USD 0.00</div>
     </div>
   </div>
 
@@ -308,4 +306,5 @@ window.initMap = initMap;
 <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyChYFu82xWcUOpUS23eSbuMPgGm7swXuSo&libraries=places&callback=initMap"></script>
 </body>
 </html>
+
 
