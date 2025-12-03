@@ -26,25 +26,23 @@
     </header>
 
     <div id="iframeWrap">
-      <!-- default src is your hosted map panel -->
       <iframe id="mapFrame" src="https://jashan11101.github.io/RouteAddin/mapPanel.html" allow="geolocation *; microphone *; camera *"></iframe>
     </div>
   </div>
 
   <script>
     (function(){
+      const MAP_URL = 'https://jashan11101.github.io/RouteAddin/mapPanel.html';
       const frame = document.getElementById('mapFrame');
       const status = document.getElementById('status');
       const refreshBtn = document.getElementById('refreshBtn');
       const manualBtn = document.getElementById('manualBtn');
 
-      // Utility: normalize selection text (support " - " and " to ")
       function normalizeText(txt){
         if(!txt) return '';
         return txt.replace(/\s+/g,' ').trim();
       }
 
-      // send the text to iframe by query param + postMessage
       function sendToFrame(text){
         text = normalizeText(text);
         if(!text){
@@ -53,28 +51,23 @@
         }
         status.innerText = 'Sending selection...';
 
-        // add query param (for convenience)
-        const base = 'https://jashan11101.github.io/RouteAddin/mapPanel.html';
-        const url = base + '?text=' + encodeURIComponent(text);
+        // Refresh iframe with same URL (we're not adding query param as you asked to leave as-is)
+        // but we will postMessage with selection so your mapPanel's existing message-listener handles it.
         try {
-          // Update iframe src to include query param (helps the map panel read it on load)
-          frame.src = url;
-        } catch(e){
-          // fallback: postMessage only
-        }
+          frame.src = MAP_URL;
+        } catch(e){ /* ignore */ }
 
-        // also postMessage after small delay (ensures frame is ready)
+        // postMessage after a short delay (gives iframe time to load)
         setTimeout(()=>{
           try {
             frame.contentWindow.postMessage({ type:'setAddress', text }, '*');
             status.innerText = 'Sent: ' + text;
           } catch(e){
-            status.innerText = 'Sent (postMessage failed) — refreshed iframe.';
+            status.innerText = 'Sent (postMessage failed) — iframe refreshed.';
           }
-        }, 700);
+        }, 600);
       }
 
-      // Try to get selected text from the message body or selected text using Office.js
       function getSelectedTextAndSend(){
         status.innerText = 'Getting selection from Outlook...';
         if (!Office || !Office.context || !Office.context.mailbox) {
@@ -82,23 +75,19 @@
           return;
         }
         try {
-          // Use getSelectedDataAsync with Text coercion
           Office.context.mailbox.item.getSelectedDataAsync(Office.CoercionType.Text, function (result) {
             if (result.status === Office.AsyncResultStatus.Succeeded) {
               const txt = (result.value && result.value.data) ? result.value.data : '';
               if (txt && txt.trim()) {
                 sendToFrame(txt);
               } else {
-                // If no selected text, try to extract first line(s) from body preview
-                status.innerText = 'No explicit selection. Trying to read item body (short)...';
-                // Read small portion of body (works in read mode)
+                status.innerText = 'No explicit selection. Trying to read item body...';
                 if (Office.context.mailbox.item.body && Office.context.mailbox.item.body.getAsync) {
                   Office.context.mailbox.item.body.getAsync("text", {coercionType: Office.CoercionType.Text}, function(bodyRes){
                     if(bodyRes.status === Office.AsyncResultStatus.Failed){
                       status.innerText = 'Cannot read body: ' + bodyRes.error.message;
                     } else {
                       const bodyText = (bodyRes.value || '').replace(/\r\n/g,' ').replace(/\n/g,' ');
-                      // try to find pattern like "A - B" or "A to B" in the body
                       const match = bodyText.match(/([A-Za-z0-9 ,.]+?(?:, [A-Za-z]{2,}| [A-Za-z]{2,})?)\s*(?:-|–|—|to|TO|To)\s*([A-Za-z0-9 ,.]+?(?:, [A-Za-z]{2,}| [A-Za-z]{2,})?)/);
                       if(match){
                         sendToFrame(match[0]);
@@ -120,22 +109,21 @@
         }
       }
 
-      // UI wiring
       refreshBtn.addEventListener('click', getSelectedTextAndSend);
       manualBtn.addEventListener('click', ()=>{
         const manual = prompt('Paste route text (e.g. "Los Angeles, CA - Mississauga, ON")');
         if(manual) sendToFrame(manual);
       });
 
-      // Also attempt automatically once when pane loads
       Office.initialize = function () {
         setTimeout(()=> getSelectedTextAndSend(), 400);
       };
 
-      // optional: listen for messages from frame
+      // Optional: listen for messages from the iframe to update status
       window.addEventListener('message', (ev)=>{
-        // you can handle ready events from the map panel here
-        // console.log('MSG from frame', ev.data);
+        if(ev && ev.data && ev.data.type === 'mapReady'){
+          status.innerText = 'Map ready';
+        }
       });
     })();
   </script>
