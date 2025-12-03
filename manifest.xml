@@ -1,27 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
 <OfficeApp xmlns="http://schemas.microsoft.com/office/appforoffice/1.1"
            xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
            xsi:type="MailApp">
-  <Id>548dc4d7-7a19-4d87-9d1a-105de9318857</Id>
+  <Id>f5d2a6b9-7a3c-4e45-9f4b-1a2b3c4d5e6f</Id>
   <Version>1.0.0.0</Version>
-  <ProviderName>YourCompany</ProviderName>
+  <ProviderName>Jashan</ProviderName>
   <DefaultLocale>en-US</DefaultLocale>
-  <DisplayName>Route & Rate Calculator</DisplayName>
-  <Description>Show map and calculate rate per mile inside Outlook.</Description>
+  <DisplayName DefaultValue="Route & Rate — Map Panel" />
+  <Description DefaultValue="Open Route & Rate panel in a right-side taskpane and pass selected text to the hosted map panel." />
+  <IconUrl DefaultValue="https://jashan11101.github.io/RouteAddin/assets/icon-32.png" />
+  <HighResolutionIconUrl DefaultValue="https://jashan11101.github.io/RouteAddin/assets/icon-128.png" />
+  <SupportUrl DefaultValue="https://jashan11101.github.io/RouteAddin/" />
 
   <Hosts>
-    <Host Name="Mailbox"/>
+    <Host Name="Mailbox" />
   </Hosts>
 
   <Requirements>
-    <Sets DefaultMinVersion="1.3">
-      <Set Name="Mailbox" MinVersion="1.3"/>
+    <Sets DefaultMinVersion="1.1">
+      <Set Name="Mailbox" />
     </Sets>
   </Requirements>
 
   <FormSettings>
     <Form xsi:type="ItemRead">
       <DesktopSettings>
-        <SourceLocation DefaultValue="https://yourdomain.com/RouteAddin/index.html"/>
+        <SourceLocation DefaultValue="https://jashan11101.github.io/RouteAddin/taskpane.html" />
       </DesktopSettings>
     </Form>
   </FormSettings>
@@ -29,34 +33,40 @@
   <Permissions>ReadWriteItem</Permissions>
 
   <Rule xsi:type="RuleCollection" Mode="Or">
-    <Rule xsi:type="ItemIs" ItemType="Message" FormType="Read"/>
+    <Rule xsi:type="ItemIs" ItemType="Message" FormType="Read" />
+    <Rule xsi:type="ItemIs" ItemType="Appointment" FormType="Read" />
   </Rule>
 
-  <Action xsi:type="ShowTaskpane">
-    <SourceLocation resid="TaskPane.Url"/>
-    <Title resid="TaskPane.Title"/>
-  </Action>
+  <VersionOverrides xmlns="http://schemas.microsoft.com/office/mailappversionoverrides/1.0" Version="1.0">
+    <Requirements>
+      <bt:Sets xmlns:bt="http://schemas.microsoft.com/office/officeappbasictypes/1.0">
+        <bt:Set Name="Mailbox" MinVersion="1.1" />
+      </bt:Sets>
+    </Requirements>
 
-  <VersionOverrides xmlns="http://schemas.microsoft.com/office/mailappversionoverrides/1.0"
-                    xsi:type="VersionOverridesV1_0">
     <Hosts>
       <Host xsi:type="MailHost">
         <DesktopFormFactor>
+          <FunctionFile resid="functionFile" />
+
           <ExtensionPoint xsi:type="MessageReadCommandSurface">
             <OfficeTab id="TabDefault">
               <Group id="msgReadGroup">
-                <Label resid="groupLabel"/>
-                <Control xsi:type="Button" id="showMapBtn">
-                  <Label resid="buttonLabel"/>
+                <Label resid="groupLabel" />
+                <Control xsi:type="Button" id="openPaneButton">
+                  <Label resid="paneButtonLabel" />
                   <Supertip>
-                    <Title resid="buttonLabel"/>
-                    <Description resid="buttonDesc"/>
+                    <Title resid="paneButtonLabel" />
+                    <Description resid="paneButtonDesc" />
                   </Supertip>
                   <Icon>
-                    <bt:Image size="16" resid="icon16"/>
+                    <bt:Image size="16" resid="icon16" />
+                    <bt:Image size="32" resid="icon32" />
+                    <bt:Image size="80" resid="icon80" />
                   </Icon>
                   <Action xsi:type="ShowTaskpane">
-                    <SourceLocation resid="TaskPane.Url"/>
+                    <TaskpaneId>RouteRatePane</TaskpaneId>
+                    <SourceLocation resid="taskpaneUrl" />
                   </Action>
                 </Control>
               </Group>
@@ -67,19 +77,21 @@
     </Hosts>
 
     <Resources>
-      <bt:Images>
-        <bt:Image id="icon16" DefaultValue="https://yourdomain.com/RouteAddin/icons/icon16.png"/>
+      <bt:Images xmlns:bt="http://schemas.microsoft.com/office/officeappbasictypes/1.0">
+        <bt:Image id="icon16" DefaultValue="https://jashan11101.github.io/RouteAddin/assets/icon-16.png" />
+        <bt:Image id="icon32" DefaultValue="https://jashan11101.github.io/RouteAddin/assets/icon-32.png" />
+        <bt:Image id="icon80" DefaultValue="https://jashan11101.github.io/RouteAddin/assets/icon-80.png" />
       </bt:Images>
-      <bt:Urls>
-        <bt:Url id="TaskPane.Url" DefaultValue="https://yourdomain.com/RouteAddin/index.html"/>
+      <bt:Urls xmlns:bt="http://schemas.microsoft.com/office/officeappbasictypes/1.0">
+        <bt:Url id="taskpaneUrl" DefaultValue="https://jashan11101.github.io/RouteAddin/taskpane.html" />
+        <bt:Url id="functionFile" DefaultValue="https://jashan11101.github.io/RouteAddin/functions.html" />
       </bt:Urls>
-      <bt:ShortStrings>
-        <bt:String id="groupLabel" DefaultValue="Route Tools"/>
-        <bt:String id="buttonLabel" DefaultValue="Show Map"/>
-        <bt:String id="TaskPane.Title" DefaultValue="Route & Rate"/>
+      <bt:ShortStrings xmlns:bt="http://schemas.microsoft.com/office/officeappbasictypes/1.0">
+        <bt:String id="groupLabel" DefaultValue="Route & Rate" />
+        <bt:String id="paneButtonLabel" DefaultValue="Open Map Panel" />
       </bt:ShortStrings>
-      <bt:LongStrings>
-        <bt:String id="buttonDesc" DefaultValue="Display map and calculate total rate"/>
+      <bt:LongStrings xmlns:bt="http://schemas.microsoft.com/office/officeappbasictypes/1.0">
+        <bt:String id="paneButtonDesc" DefaultValue="Open the Route & Rate map panel and send selected text." />
       </bt:LongStrings>
     </Resources>
   </VersionOverrides>
