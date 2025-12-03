@@ -6,10 +6,10 @@
   <Version>1.0.0.0</Version>
   <ProviderName>Jashan</ProviderName>
   <DefaultLocale>en-US</DefaultLocale>
-  <DisplayName DefaultValue="Route & Rate — Map Panel" />
-  <Description DefaultValue="Open Route & Rate panel in a right-side taskpane and pass selected text to the hosted map panel." />
-  <IconUrl DefaultValue="https://jashan11101.github.io/RouteAddin/assets/icon-32.png" />
-  <HighResolutionIconUrl DefaultValue="https://jashan11101.github.io/RouteAddin/assets/icon-128.png" />
+  <DisplayName DefaultValue="Route &amp; Rate — Map Panel" />
+  <Description DefaultValue="Open Route &amp; Rate map panel in a right-side taskpane and pass selected text." />
+  <IconUrl DefaultValue="https://jashan11101.github.io/RouteAddin/icon128.png" />
+  <HighResolutionIconUrl DefaultValue="https://jashan11101.github.io/RouteAddin/icon128.png" />
   <SupportUrl DefaultValue="https://jashan11101.github.io/RouteAddin/" />
 
   <Hosts>
@@ -61,8 +61,8 @@
                   </Supertip>
                   <Icon>
                     <bt:Image size="16" resid="icon16" />
-                    <bt:Image size="32" resid="icon32" />
-                    <bt:Image size="80" resid="icon80" />
+                    <bt:Image size="48" resid="icon48" />
+                    <bt:Image size="128" resid="icon128" />
                   </Icon>
                   <Action xsi:type="ShowTaskpane">
                     <TaskpaneId>RouteRatePane</TaskpaneId>
@@ -78,20 +78,20 @@
 
     <Resources>
       <bt:Images xmlns:bt="http://schemas.microsoft.com/office/officeappbasictypes/1.0">
-        <bt:Image id="icon16" DefaultValue="https://jashan11101.github.io/RouteAddin/assets/icon-16.png" />
-        <bt:Image id="icon32" DefaultValue="https://jashan11101.github.io/RouteAddin/assets/icon-32.png" />
-        <bt:Image id="icon80" DefaultValue="https://jashan11101.github.io/RouteAddin/assets/icon-80.png" />
+        <bt:Image id="icon16" DefaultValue="https://jashan11101.github.io/RouteAddin/icon16.png" />
+        <bt:Image id="icon48" DefaultValue="https://jashan11101.github.io/RouteAddin/icon48.png" />
+        <bt:Image id="icon128" DefaultValue="https://jashan11101.github.io/RouteAddin/icon128.png" />
       </bt:Images>
       <bt:Urls xmlns:bt="http://schemas.microsoft.com/office/officeappbasictypes/1.0">
         <bt:Url id="taskpaneUrl" DefaultValue="https://jashan11101.github.io/RouteAddin/taskpane.html" />
         <bt:Url id="functionFile" DefaultValue="https://jashan11101.github.io/RouteAddin/functions.html" />
       </bt:Urls>
       <bt:ShortStrings xmlns:bt="http://schemas.microsoft.com/office/officeappbasictypes/1.0">
-        <bt:String id="groupLabel" DefaultValue="Route & Rate" />
+        <bt:String id="groupLabel" DefaultValue="Route &amp; Rate" />
         <bt:String id="paneButtonLabel" DefaultValue="Open Map Panel" />
       </bt:ShortStrings>
       <bt:LongStrings xmlns:bt="http://schemas.microsoft.com/office/officeappbasictypes/1.0">
-        <bt:String id="paneButtonDesc" DefaultValue="Open the Route & Rate map panel and send selected text." />
+        <bt:String id="paneButtonDesc" DefaultValue="Open the Route &amp; Rate map panel and send selected text." />
       </bt:LongStrings>
     </Resources>
   </VersionOverrides>
