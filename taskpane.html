@@ -1,0 +1,143 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Route & Rate — Outlook Taskpane</title>
+  <style>
+    html,body{height:100%;margin:0;font-family:Segoe UI,Roboto,Arial;background:#f6f8fa}
+    #root{display:flex;flex-direction:column;height:100%}
+    header{padding:10px;background:#fff;border-bottom:1px solid #e9eef6;display:flex;gap:8px;align-items:center}
+    button.icon{padding:6px 10px;border-radius:8px;border:1px solid #e2e8ef;background:#fff;cursor:pointer}
+    #iframeWrap{flex:1;overflow:hidden}
+    iframe{width:100%;height:100%;border:0}
+    #status{font-size:13px;color:#475569;padding:8px}
+  </style>
+  <script src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"></script>
+</head>
+<body>
+  <div id="root">
+    <header>
+      <button id="refreshBtn" class="icon" title="Refresh with selected text">↻ Refresh</button>
+      <button id="manualBtn" class="icon" title="Manually paste text to send to map">✎ Send Text</button>
+      <div style="flex:1"></div>
+      <div id="status">Ready</div>
+    </header>
+
+    <div id="iframeWrap">
+      <!-- default src is your hosted map panel -->
+      <iframe id="mapFrame" src="https://jashan11101.github.io/RouteAddin/mapPanel.html" allow="geolocation *; microphone *; camera *"></iframe>
+    </div>
+  </div>
+
+  <script>
+    (function(){
+      const frame = document.getElementById('mapFrame');
+      const status = document.getElementById('status');
+      const refreshBtn = document.getElementById('refreshBtn');
+      const manualBtn = document.getElementById('manualBtn');
+
+      // Utility: normalize selection text (support " - " and " to ")
+      function normalizeText(txt){
+        if(!txt) return '';
+        return txt.replace(/\s+/g,' ').trim();
+      }
+
+      // send the text to iframe by query param + postMessage
+      function sendToFrame(text){
+        text = normalizeText(text);
+        if(!text){
+          status.innerText = 'No text to send';
+          return;
+        }
+        status.innerText = 'Sending selection...';
+
+        // add query param (for convenience)
+        const base = 'https://jashan11101.github.io/RouteAddin/mapPanel.html';
+        const url = base + '?text=' + encodeURIComponent(text);
+        try {
+          // Update iframe src to include query param (helps the map panel read it on load)
+          frame.src = url;
+        } catch(e){
+          // fallback: postMessage only
+        }
+
+        // also postMessage after small delay (ensures frame is ready)
+        setTimeout(()=>{
+          try {
+            frame.contentWindow.postMessage({ type:'setAddress', text }, '*');
+            status.innerText = 'Sent: ' + text;
+          } catch(e){
+            status.innerText = 'Sent (postMessage failed) — refreshed iframe.';
+          }
+        }, 700);
+      }
+
+      // Try to get selected text from the message body or selected text using Office.js
+      function getSelectedTextAndSend(){
+        status.innerText = 'Getting selection from Outlook...';
+        if (!Office || !Office.context || !Office.context.mailbox) {
+          status.innerText = 'Office.js not available';
+          return;
+        }
+        try {
+          // Use getSelectedDataAsync with Text coercion
+          Office.context.mailbox.item.getSelectedDataAsync(Office.CoercionType.Text, function (result) {
+            if (result.status === Office.AsyncResultStatus.Succeeded) {
+              const txt = (result.value && result.value.data) ? result.value.data : '';
+              if (txt && txt.trim()) {
+                sendToFrame(txt);
+              } else {
+                // If no selected text, try to extract first line(s) from body preview
+                status.innerText = 'No explicit selection. Trying to read item body (short)...';
+                // Read small portion of body (works in read mode)
+                if (Office.context.mailbox.item.body && Office.context.mailbox.item.body.getAsync) {
+                  Office.context.mailbox.item.body.getAsync("text", {coercionType: Office.CoercionType.Text}, function(bodyRes){
+                    if(bodyRes.status === Office.AsyncResultStatus.Failed){
+                      status.innerText = 'Cannot read body: ' + bodyRes.error.message;
+                    } else {
+                      const bodyText = (bodyRes.value || '').replace(/\r\n/g,' ').replace(/\n/g,' ');
+                      // try to find pattern like "A - B" or "A to B" in the body
+                      const match = bodyText.match(/([A-Za-z0-9 ,.]+?(?:, [A-Za-z]{2,}| [A-Za-z]{2,})?)\s*(?:-|–|—|to|TO|To)\s*([A-Za-z0-9 ,.]+?(?:, [A-Za-z]{2,}| [A-Za-z]{2,})?)/);
+                      if(match){
+                        sendToFrame(match[0]);
+                      } else {
+                        status.innerText = 'No route-like text found in body.';
+                      }
+                    }
+                  });
+                } else {
+                  status.innerText = 'Selection and body read not available.';
+                }
+              }
+            } else {
+              status.innerText = 'Selection read failed: ' + (result.error ? result.error.message : 'unknown');
+            }
+          });
+        } catch (e){
+          status.innerText = 'Error: ' + e.message;
+        }
+      }
+
+      // UI wiring
+      refreshBtn.addEventListener('click', getSelectedTextAndSend);
+      manualBtn.addEventListener('click', ()=>{
+        const manual = prompt('Paste route text (e.g. "Los Angeles, CA - Mississauga, ON")');
+        if(manual) sendToFrame(manual);
+      });
+
+      // Also attempt automatically once when pane loads
+      Office.initialize = function () {
+        setTimeout(()=> getSelectedTextAndSend(), 400);
+      };
+
+      // optional: listen for messages from frame
+      window.addEventListener('message', (ev)=>{
+        // you can handle ready events from the map panel here
+        // console.log('MSG from frame', ev.data);
+      });
+    })();
+  </script>
+</body>
+</html>
